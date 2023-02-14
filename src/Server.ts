@@ -87,7 +87,7 @@ class Server {
                 })
             })
         }
-        const urlLocal = `https://flatironinstitute.github.io/mcmc-monitor?s=http://localhost:${this.a.port}`
+        const urlLocal = `https://flatironinstitute.github.io/rtcshare?s=http://localhost:${this.a.port}`
         console.info('')
         console.info(`Connect on local machine: ${urlLocal}`)
         console.info('')
@@ -98,7 +98,7 @@ class Server {
                 const outgoingProxyConnection = new OutgoingProxyConnection(publicId, privateId, this.#dirManager, signalCommunicator, {verbose: this.a.verbose, webrtc: true})
                 this.#outgoingProxyConnection = outgoingProxyConnection
                 const proxyUrl = outgoingProxyConnection.url
-                const urlRemote = `https://flatironinstitute.github.io/mcmc-monitor?s=${proxyUrl}&webrtc=1`
+                const urlRemote = `https://flatironinstitute.github.io/rtcshare?s=${proxyUrl}&webrtc=1`
                 console.info('')
                 console.info(`Connect on remote machine: ${urlRemote}`)
                 console.info('')
@@ -137,7 +137,7 @@ class Server {
 }
 
 async function getServiceIdFromDir(dir: string): Promise<{publicId: string, privateId: string}> {
-    const yamlPath = `${dir}/mcmc-monitor.yaml`
+    const yamlPath = `${dir}/rtcshare.yaml`
     let config: {[key: string]: any} = {}
     if (fs.existsSync(yamlPath)) {
         const yaml = await fs.promises.readFile(yamlPath, 'utf8')

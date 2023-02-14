@@ -1,17 +1,17 @@
 import WebSocket from 'ws'
 import { handleApiRequest } from './handleApiRequest'
 import { InitializeMessageFromService, isAcknowledgeMessageToService, isRequestFromClient, PingMessageFromService, RequestFromClient, ResponseToClient } from './ConnectorHttpProxyTypes'
-import { isMCMCMonitorRequest, MCMCMonitorResponse } from './MCMCMonitorRequest'
-import OutputManager from './OutputManager'
+import { isRtcshareRequest, RtcshareResponse } from './RtcshareRequest'
+import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
 
-const proxyUrl = process.env['MCMC_MONITOR_PROXY'] || `https://mcmc-monitor-proxy.herokuapp.com`
-const proxySecret = process.env['MCMC_MONITOR_PROXY_SECRET'] || 'mcmc-monitor-no-secret'
+const proxyUrl = process.env['RTCSHARE_PROXY'] || `https://rtcshare-proxy.herokuapp.com`
+const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
 
 class OutgoingProxyConnection {
     #acknowledged: boolean
     #webSocket: WebSocket
-    constructor(private serviceId: string, private servicePrivateId: string, private outputManager: OutputManager, private signalCommunicator: SignalCommunicator, private o: {verbose: boolean, webrtc?: boolean}) {
+    constructor(private serviceId: string, private servicePrivateId: string, private dirManager: DirManager, private signalCommunicator: SignalCommunicator, private o: {verbose: boolean, webrtc?: boolean}) {
         this.initializeWebSocket()
         const keepAlive = () => {
             if (this.#webSocket) {
@@ -95,19 +95,19 @@ class OutgoingProxyConnection {
     async handleRequestFromClient(request: RequestFromClient) {
         if (!this.#webSocket) return
         const rr = request.request
-        if (!isMCMCMonitorRequest(rr)) {
+        if (!isRtcshareRequest(rr)) {
             const resp: ResponseToClient = {
                 type: 'responseToClient',
                 requestId: request.requestId,
                 response: {},
-                error: 'Invalid MCMC Monitor request'
+                error: 'Invalid Rtcshare request'
             }
             this.#webSocket.send(JSON.stringify(resp))    
             return
         }
-        let mcmcMonitorResponse: MCMCMonitorResponse
+        let RtcshareResponse: RtcshareResponse
         try {
-            mcmcMonitorResponse = await handleApiRequest(rr, this.outputManager, this.signalCommunicator, {...this.o, proxy: true})
+            RtcshareResponse = await handleApiRequest(rr, this.dirManager, this.signalCommunicator, {...this.o, proxy: true})
         }
         catch(err) {
             const resp: ResponseToClient = {
@@ -123,7 +123,7 @@ class OutgoingProxyConnection {
         const responseToClient: ResponseToClient = {
             type: 'responseToClient',
             requestId: request.requestId,
-            response: mcmcMonitorResponse
+            response: RtcshareResponse
         }
         this.#webSocket.send(JSON.stringify(responseToClient))
     }

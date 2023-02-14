@@ -4,7 +4,7 @@
   "description": "Share a directory of files using WebRTC",
   "main": "dist/index.js",
   "bin": {
-    "mcmc-monitor": "./bin/rtcshare"
+    "rtcshare": "./bin/rtcshare"
   },
   "scripts": {
     "build": "tsc",
