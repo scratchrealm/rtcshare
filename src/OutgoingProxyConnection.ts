@@ -1,12 +1,12 @@
 import WebSocket from 'ws'
-import { handleApiRequest } from './handleApiRequest'
 import { InitializeMessageFromService, isAcknowledgeMessageToService, isRequestFromClient, PingMessageFromService, RequestFromClient, ResponseToClient } from './ConnectorHttpProxyTypes'
+import { handleApiRequest } from './handleApiRequest'
 import { isRtcshareRequest, RtcshareResponse } from './RtcshareRequest'
 import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
 
-const proxyUrl = process.env['RTCSHARE_PROXY'] || `https://rtcshare-proxy.herokuapp.com`
-const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
+const proxyUrl = process.env['MCMC_MONITOR_PROXY'] || `https://mcmc-monitor-proxy.herokuapp.com`
+const proxySecret = process.env['MCMC_MONITOR_PROXY_SECRET'] || 'mcmc-monitor-no-secret'
 
 class OutgoingProxyConnection {
     #acknowledged: boolean
@@ -100,14 +100,14 @@ class OutgoingProxyConnection {
                 type: 'responseToClient',
                 requestId: request.requestId,
                 response: {},
-                error: 'Invalid Rtcshare request'
+                error: 'Invalid MCMC Monitor request'
             }
             this.#webSocket.send(JSON.stringify(resp))    
             return
         }
-        let RtcshareResponse: RtcshareResponse
+        let rtcshareResponse: RtcshareResponse
         try {
-            RtcshareResponse = await handleApiRequest(rr, this.dirManager, this.signalCommunicator, {...this.o, proxy: true})
+            rtcshareResponse = await handleApiRequest({request: rr, dirManager: this.dirManager, signalCommunicator: this.signalCommunicator, options: {...this.o, proxy: true}})
         }
         catch(err) {
             const resp: ResponseToClient = {
@@ -123,7 +123,7 @@ class OutgoingProxyConnection {
         const responseToClient: ResponseToClient = {
             type: 'responseToClient',
             requestId: request.requestId,
-            response: RtcshareResponse
+            response: rtcshareResponse
         }
         this.#webSocket.send(JSON.stringify(responseToClient))
     }

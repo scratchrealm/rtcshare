@@ -1,5 +1,5 @@
-import { RtcshareDir, RtcshareFile } from "./RtcshareRequest";
 import fs from 'fs'
+import { RtcshareDir, RtcshareFile } from './RtcshareRequest'
 
 class DirManager {
     constructor(private dir: string) {
@@ -19,14 +19,15 @@ class DirManager {
             else if (s.isFile()) {
                 if (isShareable(f)) {
                     const size = s.size
-                    let textContent: string | undefined = undefined
+                    let content: string | undefined = undefined
                     if ((isTextType(f)) && (size <= 1000 * 1000)) {
-                        textContent = await fs.promises.readFile(pp, 'utf8')
+                        content = await fs.promises.readFile(pp, 'utf8')
                     }
                     files.push({
                         name: f,
                         size,
-                        textContent
+                        mtime: s.mtime.getTime(),
+                        content
                     })
                 }
             }

@@ -1,33 +1,62 @@
 import DirManager from "./DirManager";
-import { ReadDirRequest, ReadDirResponse, RtcshareRequest, RtcshareResponse, ProbeResponse, protocolVersion } from "./RtcshareRequest";
+import { isProbeRequest, isReadDirRequest, isWebrtcSignalingRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse } from "./RtcshareRequest";
 import SignalCommunicator from "./SignalCommunicator";
 
-export const handleApiRequest = async (request: RtcshareRequest, dirManager: DirManager, signalCommunicator: SignalCommunicator, o: {verbose: boolean, webrtc?: boolean, proxy?: boolean}): Promise<RtcshareResponse> => {
-    if (request.type === 'ProbeRequest') {
-        const response: ProbeResponse = {
-            type: 'ProbeResponse',
-            protocolVersion: protocolVersion
-        }
-        if (o.proxy) {
-            response.proxy = true
-        }
-        return response
+type apiRequestOptions = {
+    verbose: boolean,
+    webrtc?: boolean,
+    proxy?: boolean
+}
+
+type apiRequest = {
+    request: RtcshareRequest,
+    dirManager: DirManager,
+    signalCommunicator: SignalCommunicator,
+    options: apiRequestOptions
+}
+
+
+export const handleApiRequest = async (props: apiRequest): Promise<RtcshareResponse> => {
+    const { request, dirManager, signalCommunicator, options } = props
+    const webrtcFlag = options.webrtc ? "Webrtc" : ""
+
+    if (isProbeRequest(request)) {
+        return handleProbeRequest(options.proxy)
     }
-    else if (request.type === 'ReadDirRequest') {
-        if (o.verbose) {
-            console.info(`${o.webrtc ? "Webrtc " : ""}ReadDir`)
-        }
-        const {dirs, files} = await dirManager.readDir(request.path)
-        const response: ReadDirResponse = {type: 'ReadDirResponse', files, dirs}
-        return response
+
+    if (isReadDirRequest(request)) {
+        options.verbose && console.info(`${webrtcFlag} readDir`)
+        return handleReadDirRequest(request, dirManager)
     }
-    else if (request.type === 'webrtcSignalingRequest') {
-        if (o.verbose) {
-            console.info(`${o.webrtc ? "Webrtc " : ""}webrtcSignalingRequest`)
-        }
-        return await signalCommunicator.handleRequest(request)
+
+    if (isWebrtcSignalingRequest(request)) {
+        options.verbose && console.info(`${webrtcFlag} webrtcSignalingRequest`)
+        return handleWebrtcSignalingRequest(request, signalCommunicator)
     }
-    else {
-        throw Error('Unexpected request type')
+
+    throw Error('Unexpected request type')
+}
+
+
+const handleProbeRequest = async (usesProxy?: boolean): Promise<ProbeResponse> => {
+    const response: ProbeResponse = {
+        type: 'probeResponse',
+        protocolVersion: protocolVersion,
+        proxy: usesProxy
     }
+    if (usesProxy) {
+        response.proxy = true
+    }
+    return response
+}
+
+
+const handleReadDirRequest = async (request: ReadDirRequest, dirManager: DirManager): Promise<ReadDirResponse> => {
+    const {files, dirs} = await dirManager.readDir(request.path)
+    const response: ReadDirResponse = {type: 'readDirResponse', files, dirs}
+    return response
+}
+
+const handleWebrtcSignalingRequest = async (request: WebrtcSignalingRequest, signalCommunicator: SignalCommunicator): Promise<WebrtcSignalingResponse> => {
+    return await signalCommunicator.handleRequest(request)
 }

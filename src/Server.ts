@@ -1,16 +1,15 @@
+import crypto from 'crypto';
 import express, { Express, NextFunction, Request, Response } from 'express';
+import fs from 'fs';
 import * as http from 'http';
-import { handleApiRequest } from './handleApiRequest';
+import YAML from 'js-yaml';
 import { isRtcshareRequest, protocolVersion } from './RtcshareRequest';
-import DirManager from './DirManager';
-import SimplePeer from 'simple-peer';
-import wrtc from 'wrtc'
-import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
-import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import OutgoingProxyConnection from './OutgoingProxyConnection';
-import fs from 'fs'
-import YAML from 'js-yaml'
-import crypto from 'crypto'
+import DirManager from './DirManager';
+import getPeer from './RemotePeer';
+import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
+import { handleApiRequest } from './handleApiRequest';
+const allowedOrigins = ['https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']
 
 class Server {
     #expressApp: Express
@@ -22,7 +21,6 @@ class Server {
         this.#expressApp = express()
         this.#expressApp.use(express.json())
         this.#expressServer = http.createServer(this.#expressApp)
-        const allowedOrigins = ['https://flatironinstitute.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']
         this.#expressApp.use((req: Request, resp: Response, next: NextFunction) => {
             const origin = req.get('origin')
             const allowedOrigin = allowedOrigins.includes(origin) ? origin : undefined
@@ -42,52 +40,15 @@ class Server {
                 return
             }
             ;(async () => {
-                const response = await handleApiRequest(request, this.#dirManager, signalCommunicator, {verbose: this.a.verbose, proxy: false})
+                const response = await handleApiRequest({request, dirManager: this.#dirManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
                 resp.status(200).send(response)
             })()
         })
         const signalCommunicator = new SignalCommunicator()
         if (a.enableRemoteAccess) {
-            signalCommunicator.onConnection(connection => {
-                const peer = new SimplePeer({initiator: false, wrtc})
-                peer.on('data', d => {
-                    const peerRequest = JSON.parse(d)
-                    if (!isRtcsharePeerRequest(peerRequest)) {
-                        console.warn('Invalid webrtc peer request. Disconnecting.')
-                        peer.destroy()
-                        connection.close()
-                        return
-                    }
-                    handleApiRequest(peerRequest.request, this.#dirManager, signalCommunicator, {verbose: true, webrtc: true}).then(response => {
-                        const resp: RtcsharePeerResponse = {
-                            type: 'RtcsharePeerResponse',
-                            response,
-                            requestId: peerRequest.requestId
-                        }
-                        peer.send(JSON.stringify(resp))
-                    })
-                })
-                peer.on('signal', s => {
-                    connection.sendSignal(JSON.stringify(s))
-                })
-                peer.on('error', e => {
-                    console.error('Error in webrtc peer', e.message)
-                    peer.destroy()
-                    connection.close()
-                })
-                peer.on('connect', () => {
-                    console.info('webrtc peer connected')
-                })
-                peer.on('close', () => {
-                    console.info('webrtc peer disconnected')
-                    connection.close()
-                })
-                connection.onSignal(signal => {
-                    peer.signal(JSON.parse(signal))
-                })
-            })
+            signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, signalCommunicator)})
         }
-        const urlLocal = `https://flatironinstitute.github.io/rtcshare?s=http://localhost:${this.a.port}`
+        const urlLocal = `https://scratchrealm.github.io/rtcshare?s=http://localhost:${this.a.port}`
         console.info('')
         console.info(`Connect on local machine: ${urlLocal}`)
         console.info('')
@@ -98,7 +59,7 @@ class Server {
                 const outgoingProxyConnection = new OutgoingProxyConnection(publicId, privateId, this.#dirManager, signalCommunicator, {verbose: this.a.verbose, webrtc: true})
                 this.#outgoingProxyConnection = outgoingProxyConnection
                 const proxyUrl = outgoingProxyConnection.url
-                const urlRemote = `https://flatironinstitute.github.io/rtcshare?s=${proxyUrl}&webrtc=1`
+                const urlRemote = `https://scratchrealm.github.io/rtcshare?s=${proxyUrl}&webrtc=1`
                 console.info('')
                 console.info(`Connect on remote machine: ${urlRemote}`)
                 console.info('')
@@ -125,7 +86,7 @@ class Server {
             return console.info(`Server is running on port ${this.a.port}`)
         })
 
-        // clean up dir manager periodically
+        // clean up output manager periodically
         ;(async () => {
             // eslint-disable-next-line no-constant-condition
             while (true) {
@@ -158,7 +119,7 @@ function sha1Hash(x: string) {
     return shasum.digest('hex')
 }
 
-export const randomAlphaStringLower = (num_chars: number) => {
+const randomAlphaStringLower = (num_chars: number) => {
     if (!num_chars) {
         /* istanbul ignore next */
         throw Error('randomAlphaString: num_chars needs to be a positive integer.')
