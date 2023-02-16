@@ -6,7 +6,6 @@ import { handleApiRequest } from './handleApiRequest';
 import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
 import SignalCommunicator, { SignalCommunicatorConnection } from './SignalCommunicator';
 
-
 type callbackProps = {
     peer: SimplePeer.Instance,
     id: string,
@@ -14,6 +13,8 @@ type callbackProps = {
     dirMgr: DirManager,
     signalCommunicator: SignalCommunicator
 }
+
+const maxWebrtcMessageLength = 32000 // how to choose this?
 
 
 const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, signalCommunicator: SignalCommunicator) => {
@@ -38,9 +39,10 @@ const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, s
     return peer
 }
 
-const onData = (d: string, props: callbackProps) => {
+const onData = (d: ArrayBuffer, props: callbackProps) => {
     const { peer, id, cnxn, dirMgr, signalCommunicator } = props
-    const peerRequest = JSON.parse(d)
+    const dec = new TextDecoder()
+    const peerRequest = JSON.parse(dec.decode(d))
     if (!isRtcsharePeerRequest(peerRequest)) {
         console.warn('Invalid webrtc peer request. Disconnecting.')
         try {
@@ -63,7 +65,12 @@ const onData = (d: string, props: callbackProps) => {
                 console.warn(`\tSignal communicator connection was closed before the response could be sent.`)
             } else {
                 const mm = createMessageWithBinaryPayload(resp, binaryPayload)
-                peer.send(mm)
+                if (mm.byteLength > maxWebrtcMessageLength) {
+                    sendMessageInParts(peer, mm)
+                }
+                else {
+                    peer.send(mm)
+                }
             }
         } catch(err) {
             console.error(err)
@@ -80,6 +87,20 @@ const onData = (d: string, props: callbackProps) => {
     })
 }
 
+function sendMessageInParts(peer: SimplePeer.Instance, msg: ArrayBuffer) {
+    const maxPartSize = maxWebrtcMessageLength
+    const N = msg.byteLength
+    const numParts = Math.ceil(N / maxPartSize)
+    const multipartId = randomAlphaString(10)
+    for (let i = 0; i < numParts; i++) {
+        const enc = new TextEncoder()
+        const partMessage = concatenateArrayBuffers([
+            enc.encode(`/multipart/${multipartId}/${i}/${numParts}/`).buffer,
+            msg.slice(i * maxPartSize, (i + 1) * maxPartSize)
+        ])
+        peer.send(partMessage)
+    }
+}
 
 const onClose = (props: callbackProps) => {
     const { peer, id, cnxn } = props
@@ -121,5 +142,29 @@ const onConnectionSignal = (signal: string, props: callbackProps) => {
     }
 }
 
+const concatenateArrayBuffers = (buffers: ArrayBuffer[]) => {
+    if (buffers.length === 0) return new ArrayBuffer(0)
+    if (buffers.length === 1) return buffers[0]
+    const totalSize = buffers.reduce((prev, buffer) => (prev + buffer.byteLength), 0)
+    const ret = new Uint8Array(totalSize)
+    let pos = 0
+    for (const buf of buffers) {
+        ret.set(new Uint8Array(buf), pos)
+        pos += buf.byteLength
+    }
+    return ret.buffer
+}
+
+const randomAlphaString = (num_chars: number) => {
+    if (!num_chars) {
+        throw Error('randomAlphaString: num_chars needs to be a positive integer.')
+    }
+    let text = ""
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    for (let i = 0; i < num_chars; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length))
+    }
+    return text
+}
 
 export default getPeer

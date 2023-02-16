@@ -44,9 +44,14 @@ class DirManager {
         else {
             if (end === undefined) throw Error('end is undefined even though start is not undefined')
             const f = await fs.promises.open(`${this.dir}/${path}`, 'r')
-            const buffer = Buffer.alloc(end - start)
-            await f.read({buffer, position: start, length: end - start})
-            return buffer
+            try {
+                const buffer = Buffer.alloc(end - start)
+                await f.read({buffer, position: start, length: end - start})
+                return buffer
+            }
+            finally {
+                f.close()
+            }
         }
     }
     async clearOldData() {

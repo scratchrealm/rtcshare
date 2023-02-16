@@ -1,17 +1,14 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react";
-import { useRtcshare } from "../useRtcshare";
+import { FunctionComponent, useEffect, useRef } from "react";
 import Qjb1Client from "./Qjb1Client";
 
 type Props = {
-    path: string
+    qjb1Client: Qjb1Client
+    currentTime: number
     width: number
     height: number
 }
 
-const Qjb1View: FunctionComponent<Props> = ({path, width, height}) => {
-    const [qjb1Client, setQjb1Client] = useState<Qjb1Client>()
-    const {client: fileSystemClient} = useRtcshare()
-    const [currentFrame, setCurrentFrame] = useState<number>(0)
+const Qjb1ViewCanvas: FunctionComponent<Props> = ({qjb1Client, currentTime, width, height}) => {
     const canvasRef = useRef<any>(null)
 	useEffect(() => {
         let canceled = false
@@ -22,6 +19,12 @@ const Qjb1View: FunctionComponent<Props> = ({path, width, height}) => {
         // ctxt.clearRect(0, 0, ctxt.canvas.width, ctxt.canvas.height)
 
         ; (async () => {
+            await qjb1Client.initialize()
+            if (canceled) return
+            const header = qjb1Client.header()
+            if (!header) return
+            const fps = header.frames_per_second
+            const currentFrame = Math.round(currentTime * fps)
             const frameImage = await qjb1Client.getFrameImage(currentFrame)
             if (canceled) return
             if (!frameImage) return
@@ -36,12 +39,7 @@ const Qjb1View: FunctionComponent<Props> = ({path, width, height}) => {
             img.src = dataUrl;
         })()
         return () => {canceled = true}
-	}, [currentFrame, qjb1Client])
-
-    useEffect(() => {
-        if (!fileSystemClient) return
-        setQjb1Client(new Qjb1Client(fileSystemClient, path))
-    }, [path, fileSystemClient])
+	}, [currentTime, qjb1Client])
 
     return (
         <div style={{position: 'absolute', width, height}}>
@@ -64,4 +62,4 @@ function arrayBufferToBase64( buffer: ArrayBuffer ) {
     return window.btoa( binary );
 }
 
-export default Qjb1View
+export default Qjb1ViewCanvas

@@ -1,7 +1,7 @@
 import RtcshareFileSystemClient from "../RtcshareDataManager/RtcshareFileSystemClient";
 
 const expectedInitialText = 'qjb1.ecv9vh5lt\n'
-const chunkSize = 1000 * 1000 * 1 // 1MB chunks. Is this a good choice?
+const chunkSize = 1000 * 1000 * 4 // 4MB chunks. Is this a good choice?
 
 type Qjb1Header = {
     video_width: number,
@@ -14,6 +14,7 @@ type Qjb1Header = {
 
 class Qjb1Client {
     #initializing = false
+    #initialized = false
     #chunks: {[chunkIndex: number]: ArrayBuffer} = {}
     #headerRecordText: string | undefined
     #framePositions: Uint32Array | undefined
@@ -35,6 +36,7 @@ class Qjb1Client {
         return d
     }
     async initialize() {
+        if (this.#initialized) return
         if (this.#initializing) {
             while (this.#initializing) {
                 await sleepMsec(100)
@@ -99,6 +101,7 @@ class Qjb1Client {
         }
         finally {
             this.#initializing = false
+            this.#initialized = true
         }
     }
     _haveEnoughDataToReadHeaderRecord() {
@@ -161,7 +164,7 @@ class Qjb1Client {
     }
 }
 
-function concatenateArrayBuffers(buffers: ArrayBuffer[]) {
+export const concatenateArrayBuffers = (buffers: ArrayBuffer[]) => {
     if (buffers.length === 0) return new ArrayBuffer(0)
     if (buffers.length === 1) return buffers[0]
     const totalSize = buffers.reduce((prev, buffer) => (prev + buffer.byteLength), 0)

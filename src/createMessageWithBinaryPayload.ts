@@ -10,7 +10,7 @@ const createMessageWithBinaryPayload = (m: any, binaryPayload?: Buffer | ArrayBu
         else if (binaryPayload instanceof ArrayBuffer) {
             const enc = new TextEncoder()
             const mm = concatArrayBuffers(
-                enc.encode(JSON.stringify(m) + '\n'),
+                enc.encode(JSON.stringify(m) + '\n').buffer,
                 binaryPayload
             )
             return mm
@@ -18,7 +18,7 @@ const createMessageWithBinaryPayload = (m: any, binaryPayload?: Buffer | ArrayBu
     }
     else {
         const enc = new TextEncoder()
-        return enc.encode(JSON.stringify(m))
+        return enc.encode(JSON.stringify(m)).buffer
     }
 }
 

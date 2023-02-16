@@ -60,8 +60,21 @@ const FileBrowser: FunctionComponent<Props> = ({onOpenFile}) => {
 
     const handleFileAction = useCallback((data: ChonkyFileActionData) => {
         if (data.id === ChonkyActions.OpenFiles.id) {
+            // open a file (like in the folder chain)
             const { targetFile, files } = data.payload;
             const fileToOpen = targetFile ?? files[0];
+            if (fileToOpen) {
+                if (fileToOpen.isDir) {
+                    setCurrentFolderPath(fileToOpen.id === '/' ? '' : fileToOpen.id)
+                }
+                else {
+                    onOpenFile(fileToOpen.id)
+                }
+            }
+        }
+        else if (data.id === ChonkyActions.MouseClickFile.id) {
+            // single click a file
+            const { file: fileToOpen } = data.payload;
             if (fileToOpen) {
                 if (fileToOpen.isDir) {
                     setCurrentFolderPath(fileToOpen.id === '/' ? '' : fileToOpen.id)

@@ -19,7 +19,7 @@ const Home: FunctionComponent<Props> = () => {
             initialPosition={Math.min(width / 2, 300)}
         >
             <FileBrowser onOpenFile={handleOpenFile} />
-            <FileView path={currentFilePath} />
+            <FileView path={currentFilePath} width={0} height={0} />
         </Splitter>
     )
 }

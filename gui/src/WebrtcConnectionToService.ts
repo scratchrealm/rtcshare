@@ -3,6 +3,7 @@ import { isRtcsharePeerResponse, RtcsharePeerRequest } from "./RtcsharePeerReque
 import { RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest } from "./RtcshareRequest";
 import postApiRequest from "./postApiRequest";
 import parseMessageWithBinaryPayload from "./parseMessageWithBinaryPayload";
+import IncomingMultipartMessageManager from "./IncomingMultipartMessageManager";
 
 class WebrtcConnectionToService {
     #peer: SimplePeer.Instance | undefined
@@ -11,6 +12,7 @@ class WebrtcConnectionToService {
     constructor() {
         const clientId = randomAlphaString(10)
         const peer = new SimplePeer({initiator: true})
+        const incomingMultipartMessageManager = new IncomingMultipartMessageManager()
         peer.on('signal', async s => {
             const request: WebrtcSignalingRequest = {
                 type: 'webrtcSignalingRequest',
@@ -30,6 +32,12 @@ class WebrtcConnectionToService {
             this.#status = 'connected'
         })
         peer.on('data', d => {
+            if (d instanceof Uint8Array) {
+                d = d.buffer // this is important sometimes, apparently
+            }
+            incomingMultipartMessageManager.handleMessageFromPeer(d)
+        })
+        incomingMultipartMessageManager.onMessage(d => {
             const {message: dd, binaryPayload} = parseMessageWithBinaryPayload(d)
             if (!isRtcsharePeerResponse(dd)) {
                 console.warn(dd)
@@ -41,6 +49,9 @@ class WebrtcConnectionToService {
                 return
             }
             delete this.#requestCallbacks[dd.requestId]
+            if (!dd.response) {
+                throw Error(`Problem in peer response: ${dd.error}`)
+            }
             cb(dd.response, binaryPayload)
         })
         this.#peer = peer
@@ -90,7 +101,8 @@ class WebrtcConnectionToService {
             this.#requestCallbacks[requestId] = (resp: RtcshareResponse, binaryPayload: ArrayBuffer | undefined) => {
                 resolve({response: resp, binaryPayload})
             }
-            peer.send(JSON.stringify(rr))
+            const enc = new TextEncoder()
+            peer.send(enc.encode(JSON.stringify(rr)).buffer)
         })
     }
     public get status() {
