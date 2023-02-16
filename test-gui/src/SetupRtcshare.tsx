@@ -73,7 +73,7 @@ const SetupRtcshare: FunctionComponent<PropsWithChildren> = ({children}) => {
                     const req: ProbeRequest = {
                         type: 'probeRequest'
                     }
-                    const resp = await postApiRequest(req)
+                    const {response: resp} = await postApiRequest(req)
                     if (!isProbeResponse(resp)) {
                         console.warn(resp)
                         throw Error('Unexpected probe response')

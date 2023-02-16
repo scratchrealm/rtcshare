@@ -1,10 +1,12 @@
+import { ChonkyActions, ChonkyFileActionData, FileArray, FileBrowser as ChonkyFileBrowser, FileList, FileNavbar } from 'chonky';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from "react";
-import {FileBrowser as ChonkyFileBrowser, FileArray, FileNavbar, FileList, ChonkyActions, ChonkyFileActionData, FileHelper} from 'chonky'
 import { useRtcshare } from "../useRtcshare";
 
-type Props = any
+type Props = {
+    onOpenFile: (path: string) => void
+}
 
-const FileBrowser: FunctionComponent<Props> = () => {
+const FileBrowser: FunctionComponent<Props> = ({onOpenFile}) => {
     const {client} = useRtcshare()
     const [currentFolderPath, setCurrentFolderPath] = useState('')
     const [files, setFiles] = useState<FileArray>([])
@@ -34,7 +36,7 @@ const FileBrowser: FunctionComponent<Props> = () => {
             if (canceled) return
             const ff: FileArray = []
             for (const x of dir.dirs) {
-                const pp = `${currentFolderPath}/${x.name}`
+                const pp = join(`${currentFolderPath}`, `${x.name}`)
                 ff.push({
                     id: pp,
                     name: x.name,
@@ -42,7 +44,7 @@ const FileBrowser: FunctionComponent<Props> = () => {
                 })
             }
             for (const x of dir.files) {
-                const pp = `${currentFolderPath}/${x.name}`
+                const pp = join(`${currentFolderPath}`, `${x.name}`)
                 ff.push({
                     id: pp,
                     name: x.name,
@@ -60,9 +62,13 @@ const FileBrowser: FunctionComponent<Props> = () => {
         if (data.id === ChonkyActions.OpenFiles.id) {
             const { targetFile, files } = data.payload;
             const fileToOpen = targetFile ?? files[0];
-            if (fileToOpen && FileHelper.isDirectory(fileToOpen)) {
-                setCurrentFolderPath(fileToOpen.id)
-                return
+            if (fileToOpen) {
+                if (fileToOpen.isDir) {
+                    setCurrentFolderPath(fileToOpen.id === '/' ? '' : fileToOpen.id)
+                }
+                else {
+                    onOpenFile(fileToOpen.id)
+                }
             }
         }
     }, [])
@@ -79,7 +85,12 @@ const FileBrowser: FunctionComponent<Props> = () => {
             <FileList />
         </ChonkyFileBrowser>
     )
-    return <div>File browser</div>
+}
+
+function join(a: string, b: string) {
+    if (!a) return b
+    if (!b) return a
+    return `${a}/${b}`
 }
 
 export default FileBrowser

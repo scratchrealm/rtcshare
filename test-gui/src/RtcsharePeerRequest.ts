@@ -1,5 +1,5 @@
 import { isRtcshareRequest, isRtcshareResponse, RtcshareRequest, RtcshareResponse } from "./RtcshareRequest"
-import validateObject, { isEqualTo, isString } from "./validateObject"
+import validateObject, { isEqualTo, isString, optional } from "./validateObject"
 
 export type RtcsharePeerRequest = {
     type: 'rtcsharePeerRequest'
@@ -17,14 +17,16 @@ export const isRtcsharePeerRequest = (x: any): x is RtcsharePeerRequest => (
 
 export type RtcsharePeerResponse = {
     type: 'rtcsharePeerResponse'
-    response: RtcshareResponse
+    response?: RtcshareResponse
+    error?: string
     requestId: string
 }
 
 export const isRtcsharePeerResponse = (x: any): x is RtcsharePeerResponse => (
     validateObject(x, {
         type: isEqualTo('rtcsharePeerResponse'),
-        response: isRtcshareResponse,
+        response: optional(isRtcshareResponse),
+        error: optional(isString),
         requestId: isString
     })
 )

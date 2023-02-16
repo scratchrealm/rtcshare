@@ -6,7 +6,7 @@ export type RtcshareFile = {
     name: string
     size: number
     mtime: number
-    content?: string | Buffer | ArrayBuffer | undefined
+    content?: ArrayBuffer | undefined
 }
 
 export type RtcshareDir = {
@@ -75,6 +75,34 @@ export const isReadDirResponse = (x: any): x is ReadDirResponse => (
 )
 
 /////////////////////////////////////////////////////////////////////////
+export type ReadFileRequest = {
+    type: 'readFileRequest'
+    path: string
+    start?: number
+    end?: number
+}
+
+export const isReadFileRequest = (x: any): x is ReadDirRequest => (
+    validateObject(x, {
+        type: isEqualTo('readFileRequest'),
+        path: isString,
+        start: optional(isNumber),
+        end: optional(isNumber)
+    })
+)
+
+export type ReadFileResponse = {
+    type: 'readFileResponse'
+    // the data will be in the binary payload
+}
+
+export const isReadFileResponse = (x: any): x is ReadFileResponse => (
+    validateObject(x, {
+        type: isEqualTo('readFileResponse')
+    })
+)
+
+/////////////////////////////////////////////////////////////////////////
 export type WebrtcSignalingRequest = {
     type: 'webrtcSignalingRequest'
     clientId: string
@@ -107,12 +135,14 @@ export const isWebrtcSignalingResponse = (x: any): x is WebrtcSignalingResponse 
 export type RtcshareRequest =
     ProbeRequest |
     ReadDirRequest |
+    ReadFileRequest |
     WebrtcSignalingRequest
 
 export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
     isOneOf([
         isProbeRequest,
         isReadDirRequest,
+        isReadFileRequest,
         isWebrtcSignalingRequest
     ])(x)
 )
@@ -120,12 +150,14 @@ export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
 export type RtcshareResponse =
     ProbeResponse |
     ReadDirResponse |
+    ReadFileResponse |
     WebrtcSignalingResponse
 
 export const isRtcshareResponse = (x: any): x is RtcshareResponse => (
     isOneOf([
         isProbeResponse,
         isReadDirResponse,
+        isReadFileResponse,
         isWebrtcSignalingResponse
     ])(x)
 )

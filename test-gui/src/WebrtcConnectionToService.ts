@@ -2,10 +2,11 @@ import SimplePeer from "simple-peer";
 import { isRtcsharePeerResponse, RtcsharePeerRequest } from "./RtcsharePeerRequest";
 import { RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest } from "./RtcshareRequest";
 import postApiRequest from "./postApiRequest";
+import parseMessageWithBinaryPayload from "./parseMessageWithBinaryPayload";
 
 class WebrtcConnectionToService {
     #peer: SimplePeer.Instance | undefined
-    #requestCallbacks: {[requestId: string]: (response: RtcshareResponse) => void} = {}
+    #requestCallbacks: {[requestId: string]: (response: RtcshareResponse, binaryPayload: ArrayBuffer | undefined) => void} = {}
     #status: 'pending' | 'connected' | 'error' = 'pending'
     constructor() {
         const clientId = randomAlphaString(10)
@@ -16,7 +17,7 @@ class WebrtcConnectionToService {
                 clientId,
                 signal: JSON.stringify(s)
             }
-            const response = await postApiRequest(request)
+            const {response} = await postApiRequest(request)
             if (response.type !== 'webrtcSignalingResponse') {
                 throw Error('Unexpected webrtc signaling response')
             }
@@ -29,7 +30,7 @@ class WebrtcConnectionToService {
             this.#status = 'connected'
         })
         peer.on('data', d => {
-            const dd = JSON.parse(d)
+            const {message: dd, binaryPayload} = parseMessageWithBinaryPayload(d)
             if (!isRtcsharePeerResponse(dd)) {
                 console.warn(dd)
                 throw Error('Unexpected peer response')
@@ -40,7 +41,7 @@ class WebrtcConnectionToService {
                 return
             }
             delete this.#requestCallbacks[dd.requestId]
-            cb(dd.response)
+            cb(dd.response, binaryPayload)
         })
         this.#peer = peer
         ;(async () => {
@@ -59,7 +60,7 @@ class WebrtcConnectionToService {
                         clientId,
                         signal: undefined
                     }
-                    const response = await postApiRequest(request)
+                    const {response} = await postApiRequest(request)
                     if (response.type !== 'webrtcSignalingResponse') {
                         throw Error('Unexpected webrtc signaling response')
                     }
@@ -70,7 +71,7 @@ class WebrtcConnectionToService {
             }
         })()
     }
-    async postApiRequest(request: RtcshareRequest): Promise<RtcshareResponse> {
+    async postApiRequest(request: RtcshareRequest): Promise<{response: RtcshareResponse, binaryPayload: ArrayBuffer | undefined}> {
         if (this.status === 'error') {
             throw Error('Error in webrtc connection')
         }
@@ -86,8 +87,8 @@ class WebrtcConnectionToService {
             requestId
         }
         return new Promise((resolve) => {
-            this.#requestCallbacks[requestId] = (resp: RtcshareResponse) => {
-                resolve(resp)
+            this.#requestCallbacks[requestId] = (resp: RtcshareResponse, binaryPayload: ArrayBuffer | undefined) => {
+                resolve({response: resp, binaryPayload})
             }
             peer.send(JSON.stringify(rr))
         })

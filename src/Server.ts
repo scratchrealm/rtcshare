@@ -3,12 +3,13 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import fs from 'fs';
 import * as http from 'http';
 import YAML from 'js-yaml';
-import { isRtcshareRequest, protocolVersion } from './RtcshareRequest';
+import { isRtcshareRequest, protocolVersion, RtcshareResponse } from './RtcshareRequest';
 import OutgoingProxyConnection from './OutgoingProxyConnection';
 import DirManager from './DirManager';
 import getPeer from './RemotePeer';
 import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import { handleApiRequest } from './handleApiRequest';
+import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 const allowedOrigins = ['https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']
 
 class Server {
@@ -40,8 +41,16 @@ class Server {
                 return
             }
             ;(async () => {
-                const response = await handleApiRequest({request, dirManager: this.#dirManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
-                resp.status(200).send(response)
+                let rrr: {response: RtcshareResponse, binaryPayload?: Buffer}
+                try {
+                    rrr = await handleApiRequest({request, dirManager: this.#dirManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
+                }
+                catch(err) {
+                    resp.status(500).send(err.message)
+                    return
+                }
+                const mm = createMessageWithBinaryPayload(rrr.response, rrr.binaryPayload)
+                resp.status(200).send(Buffer.from(mm)) // important to convert to a buffer prior to sending
             })()
         })
         const signalCommunicator = new SignalCommunicator()

@@ -4,6 +4,7 @@ import { handleApiRequest } from './handleApiRequest'
 import { isRtcshareRequest, RtcshareResponse } from './RtcshareRequest'
 import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
+import createMessageWithBinaryPayload from './createMessageWithBinaryPayload'
 
 const proxyUrl = process.env['MCMC_MONITOR_PROXY'] || `https://mcmc-monitor-proxy.herokuapp.com`
 const proxySecret = process.env['MCMC_MONITOR_PROXY_SECRET'] || 'mcmc-monitor-no-secret'
@@ -105,7 +106,7 @@ class OutgoingProxyConnection {
             this.#webSocket.send(JSON.stringify(resp))    
             return
         }
-        let rtcshareResponse: RtcshareResponse
+        let rtcshareResponse: {response: RtcshareResponse, binaryPayload?: Buffer}
         try {
             rtcshareResponse = await handleApiRequest({request: rr, dirManager: this.dirManager, signalCommunicator: this.signalCommunicator, options: {...this.o, proxy: true}})
         }
@@ -123,9 +124,10 @@ class OutgoingProxyConnection {
         const responseToClient: ResponseToClient = {
             type: 'responseToClient',
             requestId: request.requestId,
-            response: rtcshareResponse
+            response: rtcshareResponse.response
         }
-        this.#webSocket.send(JSON.stringify(responseToClient))
+        const mm = createMessageWithBinaryPayload(responseToClient, rtcshareResponse.binaryPayload)
+        this.#webSocket.send(mm)
     }
     public get url() {
         return `${proxyUrl}/s/${this.serviceId}`

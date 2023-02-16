@@ -1,5 +1,6 @@
 import SimplePeer from 'simple-peer';
 import wrtc from 'wrtc';
+import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import DirManager from './DirManager';
 import { handleApiRequest } from './handleApiRequest';
 import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
@@ -51,7 +52,7 @@ const onData = (d: string, props: callbackProps) => {
         cnxn.close()
         return
     }
-    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then((response) => {
+    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then(({response, binaryPayload}) => {
         const resp: RtcsharePeerResponse = {
             type: 'rtcsharePeerResponse',
             response,
@@ -61,12 +62,21 @@ const onData = (d: string, props: callbackProps) => {
             if (cnxn.wasClosed()) {
                 console.warn(`\tSignal communicator connection was closed before the response could be sent.`)
             } else {
-                peer.send(JSON.stringify(resp))
+                const mm = createMessageWithBinaryPayload(resp, binaryPayload)
+                peer.send(mm)
             }
         } catch(err) {
             console.error(err)
             console.warn(`\tProblem sending API response to webrtc peer ${id}.`)
         }
+    }).catch(err => {
+        const resp: RtcsharePeerResponse = {
+            type: 'rtcsharePeerResponse',
+            error: err.message,
+            requestId: peerRequest.requestId
+        }
+        const mm = createMessageWithBinaryPayload(resp)
+        peer.send(mm)
     })
 }
 

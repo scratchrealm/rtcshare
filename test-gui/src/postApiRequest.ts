@@ -1,7 +1,8 @@
 import { serviceBaseUrl, useWebrtc, webrtcConnectionToService } from "./config"
+import parseMessageWithBinaryPayload from "./parseMessageWithBinaryPayload"
 import { isRtcshareResponse, RtcshareRequest, RtcshareResponse } from "./RtcshareRequest"
 
-const postApiRequest = async (request: RtcshareRequest): Promise<RtcshareResponse> => {
+const postApiRequest = async (request: RtcshareRequest): Promise<{response: RtcshareResponse, binaryPayload: ArrayBuffer | undefined}> => {
     if ((useWebrtc) && (request.type !== 'probeRequest') && (request.type !== 'webrtcSignalingRequest')) {
         if (!webrtcConnectionToService) {
             throw Error('No webrtc connection to service')
@@ -16,12 +17,16 @@ const postApiRequest = async (request: RtcshareRequest): Promise<RtcshareRespons
             body: JSON.stringify(request)
         }
     )
-    const response = await rr.json()
+    if (rr.status !== 200) {
+        throw Error(`Error posting API request: ${await rr.text()}`)
+    }
+    const buf = await rr.arrayBuffer()
+    const {message: response, binaryPayload} = parseMessageWithBinaryPayload(buf)
     if (!isRtcshareResponse) {
         console.warn(response)
         throw Error('Unexpected api response')
     }
-    return response
+    return {response, binaryPayload}
 }
 
 export default postApiRequest
