@@ -58,6 +58,9 @@ class OutgoingProxyConnection {
             }
             ws.send(JSON.stringify(msg))
         })
+        ws.on('error', err => {
+            console.warn(`Websocket error: ${err.message}`)
+        })
         ws.on('close', () => {
             console.info('Websocket closed.')
             this.#webSocket = undefined

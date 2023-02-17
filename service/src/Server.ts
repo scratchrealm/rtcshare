@@ -68,7 +68,7 @@ class Server {
                 const outgoingProxyConnection = new OutgoingProxyConnection(publicId, privateId, this.#dirManager, signalCommunicator, {verbose: this.a.verbose, webrtc: true})
                 this.#outgoingProxyConnection = outgoingProxyConnection
                 const proxyUrl = outgoingProxyConnection.url
-                const urlRemote = `https://scratchrealm.github.io/rtcshare?s=${proxyUrl}&webrtc=1`
+                const urlRemote = `https://scratchrealm.github.io/rtcshare?sh=${proxyUrl}&webrtc=1`
                 console.info('')
                 console.info(`Connect on remote machine: ${urlRemote}`)
                 console.info('')
