@@ -59,7 +59,7 @@ class DirManager {
     }
 }
 
-const textExtensions = ['txt', 'json', 'yaml', 'md', 'py', 'ts', 'tsx', 'rst']
+const textExtensions = ['txt', 'json', 'yaml', 'md', 'py', 'ts', 'tsx', 'rst', 'jsonl']
 const binExtensions = ['qjb1']
 
 function isShareable(f: string) {
