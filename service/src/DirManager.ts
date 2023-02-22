@@ -65,8 +65,9 @@ const binExtensions = ['qjb1']
 function isShareable(f: string) {
     const bb = f.split('/')
     const fileName = bb[bb.length - 1]
-    if (fileName === 'rtcshare.yaml') {
-        // don't reveal the rtcshare.yaml secret
+    if (fileName === '.rtcshare.yaml') {
+        // don't reveal the .rtcshare.yaml secret
+        // note this is covered by '.' condition below, but we want to make extra-sure
         return false
     }
     if (fileName.startsWith('.')) {

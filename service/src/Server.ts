@@ -107,7 +107,7 @@ class Server {
 }
 
 async function getServiceIdFromDir(dir: string): Promise<{publicId: string, privateId: string}> {
-    const yamlPath = `${dir}/rtcshare.yaml`
+    const yamlPath = `${dir}/.rtcshare.yaml`
     let config: {[key: string]: any} = {}
     if (fs.existsSync(yamlPath)) {
         const yaml = await fs.promises.readFile(yamlPath, 'utf8')
