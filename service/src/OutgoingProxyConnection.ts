@@ -6,8 +6,8 @@ import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload'
 
-const proxyUrl = process.env['MCMC_MONITOR_PROXY'] || `https://mcmc-monitor-proxy.herokuapp.com`
-const proxySecret = process.env['MCMC_MONITOR_PROXY_SECRET'] || 'mcmc-monitor-no-secret'
+const proxyUrl = process.env['RTCSHARE_PROXY'] || `https://rtcshare-proxy.herokuapp.com`
+const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
 
 class OutgoingProxyConnection {
     #acknowledged: boolean
@@ -104,7 +104,7 @@ class OutgoingProxyConnection {
                 type: 'responseToClient',
                 requestId: request.requestId,
                 response: {},
-                error: 'Invalid MCMC Monitor request'
+                error: 'Invalid Rtcshare request'
             }
             this.#webSocket.send(JSON.stringify(resp))    
             return

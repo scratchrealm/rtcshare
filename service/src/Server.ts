@@ -111,7 +111,9 @@ async function getServiceIdFromDir(dir: string): Promise<{publicId: string, priv
     let config: {[key: string]: any} = {}
     if (fs.existsSync(yamlPath)) {
         const yaml = await fs.promises.readFile(yamlPath, 'utf8')
-        config = YAML.load(yaml)
+        if (yaml) {
+            config = YAML.load(yaml)
+        }
     }
     if ((!config.publicId) || (!config.privateId)) {
         config.privateId = `${randomAlphaStringLower(40)}`
