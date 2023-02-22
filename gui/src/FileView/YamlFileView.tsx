@@ -1,9 +1,9 @@
+import YAML from 'js-yaml';
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
-import { useRtcshare } from "../useRtcshare";
-import YAML from 'js-yaml'
 import Hyperlink from "../components/Hyperlink";
+import { serviceBaseUrl } from "../config";
+import { useRtcshare } from "../useRtcshare";
 import { isFigurlYaml } from "./FigurlYaml";
-import FigurlWindow from "../FigurlWindow/FigurlWindow";
 
 type Props = {
     path: string
@@ -52,7 +52,10 @@ const YamlFileView: FunctionComponent<Props> = ({path}) => {
         if (!parsedContent) return
         if (!isFigurlYaml(parsedContent)) return
         if (!client) return
-        const w = new FigurlWindow(parsedContent, parentPathOf(path), client)
+        const baseDir = parentPathOf(path)
+        const dStr = 'rtcshare://' + parsedContent.d.split('$dir/').join(baseDir ? baseDir + '/' : '')
+        const url = `http://figurl.org/f?v=${parsedContent.v}&d=${dStr}&label=${encodeURIComponent(parsedContent.label || '')}&sh=${serviceBaseUrl}`
+        window.open(url, '_blank')
     }, [parsedContent, client, path])
 
     if (status === 'waiting') return <div>waiting</div>
@@ -66,7 +69,9 @@ const YamlFileView: FunctionComponent<Props> = ({path}) => {
         <div>
             {
                 parsedContent && isFigurlYaml(parsedContent) && (
-                    <Hyperlink onClick={handleOpenFigurl}>Open figurl view</Hyperlink>
+                    <div>
+                        <Hyperlink onClick={handleOpenFigurl}>Open figurl</Hyperlink>
+                    </div>
                 )
             }
             <pre>{content}</pre>
