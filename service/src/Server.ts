@@ -10,7 +10,7 @@ import getPeer from './RemotePeer';
 import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import { handleApiRequest } from './handleApiRequest';
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
-const allowedOrigins = ['https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']
+const allowedOrigins = ['https://figurl.org', 'https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']
 
 class Server {
     #expressApp: Express

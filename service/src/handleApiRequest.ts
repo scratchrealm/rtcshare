@@ -1,5 +1,5 @@
 import DirManager from "./DirManager";
-import { isProbeRequest, isReadDirRequest, isReadFileRequest, isWebrtcSignalingRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, ReadFileRequest, ReadFileResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse } from "./RtcshareRequest";
+import { isProbeRequest, isReadDirRequest, isReadFileRequest, isWebrtcSignalingRequest, isWriteFileRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, ReadFileRequest, ReadFileResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse, WriteFileRequest, WriteFileResponse } from "./RtcshareRequest";
 import SignalCommunicator from "./SignalCommunicator";
 
 type apiRequestOptions = {
@@ -32,6 +32,11 @@ export const handleApiRequest = async (props: apiRequest): Promise<{response: Rt
     if (isReadFileRequest(request)) {
         options.verbose && console.info(`${webrtcFlag} readFileRequest`)
         return handleReadFileRequest(request, dirManager)
+    }
+
+    if (isWriteFileRequest(request)) {
+        options.verbose && console.info(`${webrtcFlag} writeFileRequest`)
+        return handleWriteFileRequest(request, dirManager)
     }
 
     if (isWebrtcSignalingRequest(request)) {
@@ -68,6 +73,40 @@ const handleReadFileRequest = async (request: ReadFileRequest, dirManager: DirMa
     return {response, binaryPayload: buf}
 }
 
+const handleWriteFileRequest = async (request: WriteFileRequest, dirManager: DirManager): Promise<{response: WriteFileResponse}> => {
+    if (!request.githubAuth.userId) {
+        throw Error('No user ID')
+    }
+    if (!dirManager.userHasWriteAccess(request.githubAuth.userId)) {
+        throw Error('User does not have write access to this rtcshare.')
+    }
+    const userId = await githubVerifyAccessToken(request.githubAuth.userId, request.githubAuth.accessToken)
+    if (userId !== request.githubAuth.userId) {
+        throw Error('Unexpected mismatch')
+    }
+    await dirManager.writeFile(request.path, request.fileDataBase64)
+    const response: WriteFileResponse = {type: 'writeFileResponse'}
+    return {response}
+}
+
 const handleWebrtcSignalingRequest = async (request: WebrtcSignalingRequest, signalCommunicator: SignalCommunicator): Promise<{response: WebrtcSignalingResponse}> => {
     return {response: await signalCommunicator.handleRequest(request)}
+}
+
+const githubVerifyAccessToken = async (userId: string, accessToken?: string) => {
+    if (!accessToken) throw Error('No github access token *')
+    const rr = await fetch(
+        `https://api.github.com/user`,
+        {
+            method: 'GET',
+            headers: {Authorization: `token ${accessToken}`}
+        }
+    )
+    const resp = await rr.json()
+    if (resp.login === userId) {
+      return resp.login as string
+    }
+    else {
+      throw Error('Incorrect user ID for access token')
+    }
 }

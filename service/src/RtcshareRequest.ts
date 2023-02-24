@@ -82,7 +82,7 @@ export type ReadFileRequest = {
     end?: number
 }
 
-export const isReadFileRequest = (x: any): x is ReadDirRequest => (
+export const isReadFileRequest = (x: any): x is ReadFileRequest => (
     validateObject(x, {
         type: isEqualTo('readFileRequest'),
         path: isString,
@@ -99,6 +99,38 @@ export type ReadFileResponse = {
 export const isReadFileResponse = (x: any): x is ReadFileResponse => (
     validateObject(x, {
         type: isEqualTo('readFileResponse')
+    })
+)
+
+/////////////////////////////////////////////////////////////////////////
+export type WriteFileRequest = {
+    type: 'writeFileRequest'
+    path: string
+    fileDataBase64: string
+    githubAuth: {userId?: string, accessToken?: string}
+}
+
+export const isWriteFileRequest = (x: any): x is WriteFileRequest => (
+    validateObject(x, {
+        type: isEqualTo('writeFileRequest'),
+        path: isString,
+        fileDataBase64: isString,
+        githubAuth: y => (
+            validateObject(y, {
+                userId: optional(isString),
+                accessToken: optional(isString)
+            })
+        )
+    })
+)
+
+export type WriteFileResponse = {
+    type: 'writeFileResponse'
+}
+
+export const isWriteFileResponse = (x: any): x is WriteFileResponse => (
+    validateObject(x, {
+        type: isEqualTo('writeFileResponse')
     })
 )
 
@@ -136,6 +168,7 @@ export type RtcshareRequest =
     ProbeRequest |
     ReadDirRequest |
     ReadFileRequest |
+    WriteFileRequest |
     WebrtcSignalingRequest
 
 export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
@@ -143,6 +176,7 @@ export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
         isProbeRequest,
         isReadDirRequest,
         isReadFileRequest,
+        isWriteFileRequest,
         isWebrtcSignalingRequest
     ])(x)
 )
@@ -151,6 +185,7 @@ export type RtcshareResponse =
     ProbeResponse |
     ReadDirResponse |
     ReadFileResponse |
+    WriteFileResponse |
     WebrtcSignalingResponse
 
 export const isRtcshareResponse = (x: any): x is RtcshareResponse => (
@@ -158,6 +193,7 @@ export const isRtcshareResponse = (x: any): x is RtcshareResponse => (
         isProbeResponse,
         isReadDirResponse,
         isReadFileResponse,
+        isWriteFileResponse,
         isWebrtcSignalingResponse
     ])(x)
 )
