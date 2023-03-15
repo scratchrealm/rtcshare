@@ -82,7 +82,7 @@ class DirManager {
 }
 
 const textExtensions = ['txt', 'json', 'yaml', 'md', 'py', 'ts', 'tsx', 'rst', 'jsonl']
-const binExtensions = ['qjb1']
+// const binExtensions = ['qjb1']
 
 function isShareable(f: string) {
     const bb = f.split('/')
@@ -96,10 +96,11 @@ function isShareable(f: string) {
         // don't show hidden files
         return false
     }
-    const exts = [...textExtensions, ...binExtensions]
-    const aa = fileName.split('.')
-    const ext = aa[aa.length - 1]
-    return exts.includes(ext)
+    return true
+    // const exts = [...textExtensions, ...binExtensions]
+    // const aa = fileName.split('.')
+    // const ext = aa[aa.length - 1]
+    // return exts.includes(ext)
 }
 
 function isWritable(f: string) {
