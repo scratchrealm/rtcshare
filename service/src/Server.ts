@@ -54,9 +54,9 @@ class Server {
             })()
         })
         const signalCommunicator = new SignalCommunicator()
-        if (a.enableRemoteAccess) {
-            signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, signalCommunicator)})
-        }
+        // if (a.enableRemoteAccess) {
+        signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, signalCommunicator)})
+        // }
         const urlLocal = `https://scratchrealm.github.io/rtcshare?s=http://localhost:${this.a.port}`
         console.info('')
         console.info(`Connect on local machine: ${urlLocal}`)
