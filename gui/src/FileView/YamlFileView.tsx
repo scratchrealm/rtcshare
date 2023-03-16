@@ -53,8 +53,8 @@ const YamlFileView: FunctionComponent<Props> = ({path}) => {
         if (!isFigurlYaml(parsedContent)) return
         if (!client) return
         const baseDir = parentPathOf(path)
-        const dStr = 'rtcshare://' + parsedContent.d.split('$dir/').join(baseDir ? baseDir + '/' : '')
-        const url = `http://figurl.org/f?v=${parsedContent.v}&d=${dStr}&label=${encodeURIComponent(parsedContent.label || '')}&sh=${serviceBaseUrl}`
+        // const dStr = 'rtcshare://' + parsedContent.d.split('$dir/').join(baseDir ? baseDir + '/' : '')
+        const url = `http://figurl.org/f?v=${parsedContent.v}&d=${parsedContent.d}&label=${encodeURIComponent(parsedContent.label || '')}&sh=${serviceBaseUrl}&dir=rtcshare://${baseDir}`
         window.open(url, '_blank')
     }, [parsedContent, client, path])
 
