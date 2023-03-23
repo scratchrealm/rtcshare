@@ -44,6 +44,7 @@ export class SimplePeerThrottler {
         let i = 0
         while ((i < this.#pendingMessages.length) && (this.#bytesSentInLastPeriod < maxBytesToSendPerPeriod)) {
             this.peer.send(this.#pendingMessages[i])
+            this.#bytesSentInLastPeriod += this.#pendingMessages[i].byteLength
             i += 1
         }
         this.#pendingMessages = this.#pendingMessages.slice(i)
