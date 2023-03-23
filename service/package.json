@@ -1,6 +1,6 @@
 {
   "name": "rtcshare",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Share a directory of files using WebRTC",
   "main": "dist/index.js",
   "bin": {

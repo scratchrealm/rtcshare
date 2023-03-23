@@ -4,10 +4,10 @@ import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import DirManager from './DirManager';
 import { handleApiRequest } from './handleApiRequest';
 import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
-import SignalCommunicator, { SignalCommunicatorConnection } from './SignalCommunicator';
+import SignalCommunicator, { SignalCommunicatorConnection, sleepMsec } from './SignalCommunicator';
 
-type callbackProps = {
-    peer: SimplePeer.Instance,
+type CallbackProps = {
+    peer: SimplePeerThrottler,
     id: string,
     cnxn: SignalCommunicatorConnection,
     dirMgr: DirManager,
@@ -15,38 +15,81 @@ type callbackProps = {
 }
 
 const maxWebrtcMessageLength = 32000 // how to choose this?
+const maxBytesToSendPerPeriod = 1000 * 1000 * 1
+const periodDuration = 1000 / 8
+
+export class SimplePeerThrottler {
+    #bytesSentInLastPeriod = 0
+    #lastPeriodStart = Date.now()
+    #pendingMessages: ArrayBuffer[] = []
+    #closed = false
+    constructor(public peer: SimplePeer.Instance) {
+        this._startChecking()
+    }
+    send(msg: ArrayBuffer) {
+        this.#pendingMessages.push(msg)
+        this._checkSend()
+    }
+    close() {
+        this.#closed = true
+    }
+    _checkSend() {
+        if (this.#closed) return
+        if (this.#pendingMessages.length === 0) return
+        const elapsed = Date.now() - this.#lastPeriodStart
+        if (elapsed > periodDuration) {
+            this.#lastPeriodStart = Date.now()
+            this.#bytesSentInLastPeriod = 0
+        }
+        let i = 0
+        while ((i < this.#pendingMessages.length) && (this.#bytesSentInLastPeriod < maxBytesToSendPerPeriod)) {
+            this.peer.send(this.#pendingMessages[i])
+            i += 1
+        }
+        this.#pendingMessages = this.#pendingMessages.slice(i)
+    }
+    async _startChecking() {
+        while (!this.#closed) {
+            this._checkSend()
+            await sleepMsec(100)
+        }
+    }
+}
 
 
 const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, signalCommunicator: SignalCommunicator) => {
-    const peer = new SimplePeer({initiator: false, wrtc})
+    const peer = new SimplePeerThrottler(new SimplePeer({initiator: false, wrtc}))
     const id = Math.random().toString(36).substring(2, 10)
-    const props: callbackProps = {
+    const props: CallbackProps = {
         peer,
         id,
         cnxn: connection,
         dirMgr,
         signalCommunicator
     }
-    peer.on('data', d => onData(d, props))
-    peer.on('signal', s => onPeerSignal(s, props))
-    peer.on('error', e => onError(e, props))
-    peer.on('connect', () => {
+    peer.peer.on('data', d => onData(d, props))
+    peer.peer.on('signal', s => onPeerSignal(s, props))
+    peer.peer.on('error', e => onError(e, props))
+    peer.peer.on('connect', () => {
         console.info(`webrtc peer ${id} connected`)
     })
-    peer.on('close', () => onClose(props))
+    peer.peer.on('close', () => {
+        peer.close()
+        onClose(props)
+    })
     connection.onSignal(signal => onConnectionSignal(signal, props))
 
     return peer
 }
 
-const onData = (d: ArrayBuffer, props: callbackProps) => {
+const onData = (d: ArrayBuffer, props: CallbackProps) => {
     const { peer, id, cnxn, dirMgr, signalCommunicator } = props
     const dec = new TextDecoder()
     const peerRequest = JSON.parse(dec.decode(d))
     if (!isRtcsharePeerRequest(peerRequest)) {
         console.warn('Invalid webrtc peer request. Disconnecting.')
         try {
-            peer.destroy()
+            peer.peer.destroy()
         } catch(err) {
             console.error(err)
             console.warn(`\tProblem destroying webrtc peer ${id} in response to bad peer request.`)
@@ -87,7 +130,7 @@ const onData = (d: ArrayBuffer, props: callbackProps) => {
     })
 }
 
-function sendMessageInParts(peer: SimplePeer.Instance, msg: ArrayBuffer) {
+function sendMessageInParts(peer: SimplePeerThrottler, msg: ArrayBuffer) {
     const maxPartSize = maxWebrtcMessageLength
     const N = msg.byteLength
     const numParts = Math.ceil(N / maxPartSize)
@@ -102,28 +145,28 @@ function sendMessageInParts(peer: SimplePeer.Instance, msg: ArrayBuffer) {
     }
 }
 
-const onClose = (props: callbackProps) => {
+const onClose = (props: CallbackProps) => {
     const { peer, id, cnxn } = props
 
     console.info(`webrtc peer ${id} disconnected`)
-    peer.removeAllListeners('data')
-    peer.removeAllListeners('signal')
-    peer.removeAllListeners('connect')
-    peer.removeAllListeners('close')
+    peer.peer.removeAllListeners('data')
+    peer.peer.removeAllListeners('signal')
+    peer.peer.removeAllListeners('connect')
+    peer.peer.removeAllListeners('close')
     cnxn.close()
 }
 
 
-const onPeerSignal = (s: SimplePeer.SignalData, props: callbackProps) => {
+const onPeerSignal = (s: SimplePeer.SignalData, props: CallbackProps) => {
     props.cnxn.sendSignal(JSON.stringify(s))
 }
 
 
-const onError = (e: Error, props: callbackProps) => {
+const onError = (e: Error, props: CallbackProps) => {
     const { peer, cnxn, id } = props
     console.error('Error in webrtc peer', e.message)
     try {
-        peer.destroy()
+        peer.peer.destroy()
     } catch(err) {
         console.error(err)
         console.warn(`\tProblem destroying webrtc peer ${id} in response to peer error.`)
@@ -132,10 +175,10 @@ const onError = (e: Error, props: callbackProps) => {
 }
 
 
-const onConnectionSignal = (signal: string, props: callbackProps) => {
+const onConnectionSignal = (signal: string, props: CallbackProps) => {
     const { peer, id } = props
     try {
-        peer.signal(JSON.parse(signal))
+        peer.peer.signal(JSON.parse(signal))
     } catch(err) {
         console.error(err)
         console.warn(`\tProblem sending signal to webrtc peer ${id}.`)

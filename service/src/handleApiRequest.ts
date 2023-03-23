@@ -25,17 +25,17 @@ export const handleApiRequest = async (props: apiRequest): Promise<{response: Rt
     }
 
     if (isReadDirRequest(request)) {
-        options.verbose && console.info(`${webrtcFlag} readDir`)
+        options.verbose && console.info(`${webrtcFlag} readDir ${request.path}`)
         return handleReadDirRequest(request, dirManager)
     }
 
     if (isReadFileRequest(request)) {
-        options.verbose && console.info(`${webrtcFlag} readFileRequest`)
+        options.verbose && console.info(`${webrtcFlag} readFile ${request.path}`)
         return handleReadFileRequest(request, dirManager)
     }
 
     if (isWriteFileRequest(request)) {
-        options.verbose && console.info(`${webrtcFlag} writeFileRequest`)
+        options.verbose && console.info(`${webrtcFlag} writeFile ${request.path}`)
         return handleWriteFileRequest(request, dirManager)
     }
 
