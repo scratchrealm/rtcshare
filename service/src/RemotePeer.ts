@@ -24,11 +24,13 @@ export class SimplePeerThrottler {
     #pendingMessages: ArrayBuffer[] = []
     #closed = false
     constructor(public peer: SimplePeer.Instance) {
-        this._startChecking()
+        // this._startChecking()
     }
     send(msg: ArrayBuffer) {
-        this.#pendingMessages.push(msg)
-        this._checkSend()
+        // seems like it's important to use peer.write() instead of peer.send() for large files (buffering issue)
+        this.peer.write(Buffer.from(msg))
+        // this.#pendingMessages.push(msg)
+        // this._checkSend()
     }
     close() {
         this.#closed = true
@@ -43,7 +45,7 @@ export class SimplePeerThrottler {
         }
         let i = 0
         while ((i < this.#pendingMessages.length) && (this.#bytesSentInLastPeriod < maxBytesToSendPerPeriod)) {
-            this.peer.send(this.#pendingMessages[i])
+            this.peer.write(Buffer.from(this.#pendingMessages[i]))
             this.#bytesSentInLastPeriod += this.#pendingMessages[i].byteLength
             i += 1
         }
