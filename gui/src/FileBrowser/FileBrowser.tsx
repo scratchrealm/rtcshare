@@ -4,11 +4,12 @@ import { useRtcshare } from "../useRtcshare";
 
 type Props = {
     onOpenFile: (path: string) => void
+    currentFolderPath: string
+    setCurrentFolderPath: (path: string) => void
 }
 
-const FileBrowser: FunctionComponent<Props> = ({onOpenFile}) => {
+const FileBrowser: FunctionComponent<Props> = ({onOpenFile, currentFolderPath, setCurrentFolderPath}) => {
     const {client} = useRtcshare()
-    const [currentFolderPath, setCurrentFolderPath] = useState('')
     const [files, setFiles] = useState<FileArray>([])
 
     const folderChain: FileArray = useMemo(() => {

@@ -1,5 +1,3 @@
-import { concatenateArrayBuffers } from './Qjb1View/Qjb1Client'
-
 class IncomingMultipartMessageManager {
     #onMessageHandlers: ((msg: ArrayBuffer) => void)[] = []
     #incomingMultipartMessages: {[id: string]: IncomingMultipartMessage} = {}
@@ -35,6 +33,20 @@ class IncomingMultipartMessageManager {
             this.#onMessageHandlers.forEach(cb => cb(d))
         }
     }
+}
+
+const concatenateArrayBuffers = (buffers: ArrayBuffer[]) => {
+    let totalLength = 0
+    for (let i = 0; i < buffers.length; i++) {
+        totalLength += buffers[i].byteLength
+    }
+    const result = new Uint8Array(totalLength)
+    let offset = 0
+    for (let i = 0; i < buffers.length; i++) {
+        result.set(new Uint8Array(buffers[i]), offset)
+        offset += buffers[i].byteLength
+    }
+    return result.buffer
 }
 
 class IncomingMultipartMessage {
