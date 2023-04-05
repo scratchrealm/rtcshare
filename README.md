@@ -11,7 +11,7 @@ Prerequisite: NodeJS >= v16
 ```
 npx rtcshare@latest start --dir /path/to/directory/to/share --verbose
 
-# Optionally add the --enable-remote-access button
+# Optionally add the --enable-remote-access option
 ```
 
 The console output will contain links for attaching to your service from within a web browser.
