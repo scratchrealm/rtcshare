@@ -17,7 +17,7 @@ class Server {
     #expressServer: http.Server
     #dirManager: DirManager
     #outgoingProxyConnection: OutgoingProxyConnection | undefined
-    constructor(private a: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean}) {
+    constructor(private a: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean, iceServers: any | undefined}) {
         this.#dirManager = new DirManager(a.dir)
         this.#expressApp = express()
         this.#expressApp.use(express.json())

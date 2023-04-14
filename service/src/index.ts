@@ -1,5 +1,6 @@
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
+import getIceServers from './getIceServers'
 import Server from './Server'
 
 const main = () => {
@@ -8,7 +9,9 @@ const main = () => {
             return yargs
         }, (argv) => {
             const dir: string = argv.dir as string
-            start({port: parseInt(process.env.PORT || "61752"), dir, verbose: argv.verbose ? true : false, enableRemoteAccess: argv['enable-remote-access'] ? true : false})
+            getIceServers().then((iceServers) => {
+                start({port: parseInt(process.env.PORT || "61752"), dir, verbose: argv.verbose ? true : false, enableRemoteAccess: argv['enable-remote-access'] ? true : false, iceServers})
+            })
         })
         .option('verbose', {
             alias: 'v',
@@ -29,8 +32,8 @@ const main = () => {
 }
 
 let server: Server
-function start({port, dir, verbose, enableRemoteAccess}: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean}) {
-    server = new Server({port, dir, verbose, enableRemoteAccess})
+function start({port, dir, verbose, enableRemoteAccess, iceServers}: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean, iceServers: any | undefined}) {
+    server = new Server({port, dir, verbose, enableRemoteAccess, iceServers})
     server.start()
 }
 
