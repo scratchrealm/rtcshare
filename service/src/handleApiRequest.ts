@@ -1,5 +1,7 @@
 import DirManager from "./DirManager";
-import { isProbeRequest, isReadDirRequest, isReadFileRequest, isWebrtcSignalingRequest, isWriteFileRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, ReadFileRequest, ReadFileResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse, WriteFileRequest, WriteFileResponse } from "./RtcshareRequest";
+import handleServiceQueryRequest from "./handleServiceQueryRequest";
+import { isProbeRequest, isReadDirRequest, isReadFileRequest, isServiceQueryRequest, isWebrtcSignalingRequest, isWriteFileRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, ReadFileRequest, ReadFileResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse, WriteFileRequest, WriteFileResponse } from "./RtcshareRequest";
+import ServiceManager from "./ServiceManager";
 import SignalCommunicator from "./SignalCommunicator";
 
 type apiRequestOptions = {
@@ -11,13 +13,14 @@ type apiRequestOptions = {
 type apiRequest = {
     request: RtcshareRequest,
     dirManager: DirManager,
+    serviceManager: ServiceManager,
     signalCommunicator: SignalCommunicator,
     options: apiRequestOptions
 }
 
 
 export const handleApiRequest = async (props: apiRequest): Promise<{response: RtcshareResponse, binaryPayload?: Buffer | undefined}> => {
-    const { request, dirManager, signalCommunicator, options } = props
+    const { request, dirManager, serviceManager, signalCommunicator, options } = props
     const webrtcFlag = options.webrtc ? "Webrtc" : ""
 
     if (isProbeRequest(request)) {
@@ -37,6 +40,11 @@ export const handleApiRequest = async (props: apiRequest): Promise<{response: Rt
     if (isWriteFileRequest(request)) {
         options.verbose && console.info(`${webrtcFlag} writeFile ${request.path}`)
         return handleWriteFileRequest(request, dirManager)
+    }
+
+    if (isServiceQueryRequest(request)) {
+        options.verbose && console.info(`${webrtcFlag} serviceQuery`)
+        return handleServiceQueryRequest(request, serviceManager)
     }
 
     if (isWebrtcSignalingRequest(request)) {

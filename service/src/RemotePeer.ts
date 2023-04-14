@@ -60,8 +60,11 @@ export class SimplePeerThrottler {
 }
 
 
-const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, signalCommunicator: SignalCommunicator) => {
-    const peer = new SimplePeerThrottler(new SimplePeer({initiator: false, wrtc}))
+const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, signalCommunicator: SignalCommunicator, iceServers: any | undefined) => {
+    if (iceServers) {
+        console.info('Using custom ice servers')
+    }
+    const peer = new SimplePeerThrottler(new SimplePeer({initiator: false, wrtc, config: {iceServers}}))
     const id = Math.random().toString(36).substring(2, 10)
     const props: CallbackProps = {
         peer,

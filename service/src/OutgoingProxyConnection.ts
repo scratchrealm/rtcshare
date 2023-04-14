@@ -5,6 +5,7 @@ import { isRtcshareRequest, RtcshareResponse } from './RtcshareRequest'
 import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload'
+import ServiceManager from './ServiceManager'
 
 const proxyUrl = process.env['RTCSHARE_PROXY'] || `https://rtcshare-proxy.herokuapp.com`
 const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
@@ -12,7 +13,7 @@ const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
 class OutgoingProxyConnection {
     #acknowledged: boolean
     #webSocket: WebSocket
-    constructor(private serviceId: string, private servicePrivateId: string, private dirManager: DirManager, private signalCommunicator: SignalCommunicator, private o: {verbose: boolean, webrtc?: boolean}) {
+    constructor(private serviceId: string, private servicePrivateId: string, private dirManager: DirManager, private serviceManager: ServiceManager, private signalCommunicator: SignalCommunicator, private o: {verbose: boolean, webrtc?: boolean}) {
         this.initializeWebSocket()
         const keepAlive = () => {
             if (this.#webSocket) {
@@ -111,7 +112,7 @@ class OutgoingProxyConnection {
         }
         let rtcshareResponse: {response: RtcshareResponse, binaryPayload?: Buffer}
         try {
-            rtcshareResponse = await handleApiRequest({request: rr, dirManager: this.dirManager, signalCommunicator: this.signalCommunicator, options: {...this.o, proxy: true}})
+            rtcshareResponse = await handleApiRequest({request: rr, dirManager: this.dirManager, serviceManager: this.serviceManager, signalCommunicator: this.signalCommunicator, options: {...this.o, proxy: true}})
         }
         catch(err) {
             const resp: ResponseToClient = {

@@ -10,15 +10,18 @@ import getPeer from './RemotePeer';
 import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import { handleApiRequest } from './handleApiRequest';
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
+import ServiceManager from './ServiceManager';
 const allowedOrigins = ['https://figurl.org', 'https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001']
 
 class Server {
     #expressApp: Express
     #expressServer: http.Server
     #dirManager: DirManager
+    #serviceManager: ServiceManager
     #outgoingProxyConnection: OutgoingProxyConnection | undefined
     constructor(private a: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean, iceServers: any | undefined}) {
         this.#dirManager = new DirManager(a.dir)
+        this.#serviceManager = new ServiceManager(a.dir)
         this.#expressApp = express()
         this.#expressApp.use(express.json())
         this.#expressServer = http.createServer(this.#expressApp)
@@ -43,7 +46,7 @@ class Server {
             ;(async () => {
                 let rrr: {response: RtcshareResponse, binaryPayload?: Buffer}
                 try {
-                    rrr = await handleApiRequest({request, dirManager: this.#dirManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
+                    rrr = await handleApiRequest({request, dirManager: this.#dirManager, serviceManager: this.#serviceManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
                 }
                 catch(err) {
                     resp.status(500).send(err.message)
@@ -55,7 +58,7 @@ class Server {
         })
         const signalCommunicator = new SignalCommunicator()
         // if (a.enableRemoteAccess) {
-        signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, signalCommunicator)})
+        signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, signalCommunicator, a.iceServers)})
         // }
         const urlLocal = `https://scratchrealm.github.io/rtcshare?s=http://localhost:${this.a.port}`
         console.info('')
@@ -65,7 +68,7 @@ class Server {
             ;(async () => {
                 console.info('Connecting to proxy')
                 const {publicId, privateId} = await getServiceIdFromDir(this.a.dir)
-                const outgoingProxyConnection = new OutgoingProxyConnection(publicId, privateId, this.#dirManager, signalCommunicator, {verbose: this.a.verbose, webrtc: true})
+                const outgoingProxyConnection = new OutgoingProxyConnection(publicId, privateId, this.#dirManager, this.#serviceManager, signalCommunicator, {verbose: this.a.verbose, webrtc: true})
                 this.#outgoingProxyConnection = outgoingProxyConnection
                 const proxyUrl = outgoingProxyConnection.url
                 const urlRemote = `https://scratchrealm.github.io/rtcshare?sh=${proxyUrl}&webrtc=1`

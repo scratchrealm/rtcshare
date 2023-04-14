@@ -135,6 +135,34 @@ export const isWriteFileResponse = (x: any): x is WriteFileResponse => (
 )
 
 /////////////////////////////////////////////////////////////////////////
+export type ServiceQueryRequest = {
+    type: 'serviceQueryRequest'
+    serviceName: string
+    query: any
+}
+
+export const isServiceQueryRequest = (x: any): x is ServiceQueryRequest => (
+    validateObject(x, {
+        type: isEqualTo('serviceQueryRequest'),
+        serviceName: isString,
+        query: () => (true)
+    })
+)
+
+export type ServiceQueryResponse = {
+    type: 'serviceQueryResponse'
+    result: any
+    // note: the binaryPayload comes elsewhere
+}
+
+export const isServiceQueryResponse = (x: any): x is ServiceQueryResponse => (
+    validateObject(x, {
+        type: isEqualTo('serviceQueryResponse'),
+        result: () => (true)
+    })
+)
+
+/////////////////////////////////////////////////////////////////////////
 export type WebrtcSignalingRequest = {
     type: 'webrtcSignalingRequest'
     clientId: string
@@ -169,6 +197,7 @@ export type RtcshareRequest =
     ReadDirRequest |
     ReadFileRequest |
     WriteFileRequest |
+    ServiceQueryRequest |
     WebrtcSignalingRequest
 
 export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
@@ -177,6 +206,7 @@ export const isRtcshareRequest = (x: any): x is RtcshareRequest => (
         isReadDirRequest,
         isReadFileRequest,
         isWriteFileRequest,
+        isServiceQueryRequest,
         isWebrtcSignalingRequest
     ])(x)
 )
@@ -186,6 +216,7 @@ export type RtcshareResponse =
     ReadDirResponse |
     ReadFileResponse |
     WriteFileResponse |
+    ServiceQueryResponse |
     WebrtcSignalingResponse
 
 export const isRtcshareResponse = (x: any): x is RtcshareResponse => (
@@ -194,6 +225,7 @@ export const isRtcshareResponse = (x: any): x is RtcshareResponse => (
         isReadDirResponse,
         isReadFileResponse,
         isWriteFileResponse,
+        isServiceQueryResponse,
         isWebrtcSignalingResponse
     ])(x)
 )
