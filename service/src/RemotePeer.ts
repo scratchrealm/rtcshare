@@ -4,6 +4,7 @@ import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import DirManager from './DirManager';
 import { handleApiRequest } from './handleApiRequest';
 import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
+import ServiceManager from './ServiceManager';
 import SignalCommunicator, { SignalCommunicatorConnection, sleepMsec } from './SignalCommunicator';
 
 type CallbackProps = {
@@ -11,6 +12,7 @@ type CallbackProps = {
     id: string,
     cnxn: SignalCommunicatorConnection,
     dirMgr: DirManager,
+    serviceMgr: ServiceManager,
     signalCommunicator: SignalCommunicator
 }
 
@@ -60,7 +62,7 @@ export class SimplePeerThrottler {
 }
 
 
-const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, signalCommunicator: SignalCommunicator, iceServers: any | undefined) => {
+const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, serviceManager: ServiceManager, signalCommunicator: SignalCommunicator, iceServers: any | undefined) => {
     if (iceServers) {
         console.info('Using custom ice servers')
     }
@@ -71,6 +73,7 @@ const getPeer = (connection: SignalCommunicatorConnection, dirMgr: DirManager, s
         id,
         cnxn: connection,
         dirMgr,
+        serviceMgr: serviceManager,
         signalCommunicator
     }
     peer.peer.on('data', d => onData(d, props))
@@ -103,7 +106,7 @@ const onData = (d: ArrayBuffer, props: CallbackProps) => {
         cnxn.close()
         return
     }
-    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then(({response, binaryPayload}) => {
+    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, serviceManager: props.serviceMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then(({response, binaryPayload}) => {
         const resp: RtcsharePeerResponse = {
             type: 'rtcsharePeerResponse',
             response,
