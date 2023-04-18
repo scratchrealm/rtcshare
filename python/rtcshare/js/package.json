@@ -1,15 +1,10 @@
 {
   "name": "rtcshare",
-  "version": "0.1.12",
+  "version": "0.2.0",
   "description": "Share a directory of files using WebRTC",
   "main": "dist/index.js",
-  "bin": {
-    "rtcshare": "./bin/rtcshare"
-  },
   "scripts": {
-    "build": "tsc",
-    "dev": "nodemon src/index.ts start --v --dir ./examples/example-dir1 --enable-remote-access",
-    "release": "rm -rf dist && yarn build && npm publish && git tag $npm_package_version && git push --tags"
+    "build": "tsc"
   },
   "author": "Jeremy Magland",
   "license": "Apache-2.0",

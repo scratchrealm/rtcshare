@@ -21,7 +21,7 @@ class Server {
     #outgoingProxyConnection: OutgoingProxyConnection | undefined
     constructor(private a: {port: number, dir: string, verbose: boolean, enableRemoteAccess: boolean, iceServers: any | undefined}) {
         this.#dirManager = new DirManager(a.dir)
-        this.#serviceManager = new ServiceManager(a.dir)
+        this.#serviceManager = new ServiceManager()
         this.#expressApp = express()
         this.#expressApp.use(express.json())
         this.#expressServer = http.createServer(this.#expressApp)
@@ -81,6 +81,20 @@ class Server {
         //     this.#peerManager = new PeerManager(this.#outputManager, {verbose: this.a.verbose})
         //     this.#peerManager.start()
         // }
+        setTimeout(() => {
+            console.log('Testing service query')
+            ;(async () => {
+                const {response, binaryPayload} = await handleApiRequest({
+                    request: {type: 'serviceQueryRequest', serviceName: 'test', query: {a: 1}},
+                    dirManager: this.#dirManager,
+                    serviceManager: this.#serviceManager,
+                    signalCommunicator,
+                    options: {verbose: this.a.verbose, proxy: false}
+                })
+                console.log('response', response)
+                console.log('binaryPayload', binaryPayload)
+            })()
+        }, 4000)
     }
     async stop() {
         return new Promise<void>((resolve) => {

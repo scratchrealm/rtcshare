@@ -1,0 +1,2 @@
+include rtcshare/js/*.json
+include rtcshare/js/src/*.ts
