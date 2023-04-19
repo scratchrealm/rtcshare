@@ -17,7 +17,11 @@ class ServiceManager {
 
         const ii = responseData.indexOf('\n')
         if (ii === -1) {
+            console.warn(responseData)
             throw Error('Invalid response from service. No newline found.')
+        }
+        if (ii === 0) {
+            throw Error('Error in queryService: ' + responseData.subarray(1).toString())
         }
         const result = JSON.parse(responseData.subarray(0, ii).toString())
         const binaryPayload = responseData.subarray(ii + 1)

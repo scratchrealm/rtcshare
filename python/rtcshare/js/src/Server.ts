@@ -60,7 +60,7 @@ class Server {
         // if (a.enableRemoteAccess) {
         signalCommunicator.onConnection(connection => { return getPeer(connection, this.#dirManager, this.#serviceManager, signalCommunicator, a.iceServers)})
         // }
-        const urlLocal = `https://scratchrealm.github.io/rtcshare?s=http://localhost:${this.a.port}`
+        const urlLocal = `https://scratchrealm.github.io/rtcshare?sh=http://localhost:${this.a.port}`
         console.info('')
         console.info(`Connect on local machine: ${urlLocal}`)
         console.info('')
@@ -81,20 +81,6 @@ class Server {
         //     this.#peerManager = new PeerManager(this.#outputManager, {verbose: this.a.verbose})
         //     this.#peerManager.start()
         // }
-        setTimeout(() => {
-            console.log('Testing service query')
-            ;(async () => {
-                const {response, binaryPayload} = await handleApiRequest({
-                    request: {type: 'serviceQueryRequest', serviceName: 'test', query: {a: 1}},
-                    dirManager: this.#dirManager,
-                    serviceManager: this.#serviceManager,
-                    signalCommunicator,
-                    options: {verbose: this.a.verbose, proxy: false}
-                })
-                console.log('response', response)
-                console.log('binaryPayload', binaryPayload)
-            })()
-        }, 4000)
     }
     async stop() {
         return new Promise<void>((resolve) => {

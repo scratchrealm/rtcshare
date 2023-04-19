@@ -5,8 +5,8 @@ const queryParams = Object.fromEntries(urlSearchParams.entries())
 
 export const defaultServiceBaseUrl = 'http://localhost:61752'
 
-export const serviceBaseUrl = (queryParams.sh || queryParams.s) ? ( // remove the queryParams.s in the future
-    queryParams.sh || queryParams.s // remove the queryParams.s in the future
+export const serviceBaseUrl = queryParams.sh ? (
+    queryParams.sh
 ) : (
     defaultServiceBaseUrl
 )

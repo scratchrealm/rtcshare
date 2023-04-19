@@ -9,5 +9,8 @@ export default defineConfig({
     alias: {
       "simple-peer": "simple-peer/simplepeer.min.js"
     }
+  },
+  define: {
+    "process.env": {}
   }
 })

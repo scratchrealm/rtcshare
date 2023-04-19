@@ -11,8 +11,7 @@ from .handle_request import handle_request
 this_directory = Path(__file__).parent
 
 class Daemon:
-    def __init__(self, dir: str):
-        self.dir = dir
+    def __init__(self):
         self.process = None
         self.output_thread = None
 
@@ -36,9 +35,17 @@ class Daemon:
         request = json.loads(received_data.decode('utf-8'))
 
         # Process data received from rtcshare-js and send a response
-        response_data = handle_request(request)
-        client_socket.sendall(response_data)
-        client_socket.close()
+        try:
+            response_data = handle_request(request)
+        except Exception as e:
+            error_string = str(e)
+            response_data = None
+        if response_data is not None:
+            client_socket.sendall(response_data)
+            client_socket.close()
+        else:
+            client_socket.sendall(b'\n' + error_string.encode('utf-8'))
+            client_socket.close()
 
     def start_socket_server(self) -> int:
         self.socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -68,9 +75,10 @@ class Daemon:
         socket_server_port = self.start_socket_server()
         os.environ["RTCSHARE_SOCKET_PORT"] = str(socket_server_port)  # Pass the port number to the js server
 
+        dir0 = os.environ.get('RTCSHARE_DIR')
         self.process = subprocess.Popen(
             # ["rtcshare", "start", "--dir", ".", "--verbose"],
-            ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", self.dir, "--verbose"],
+            ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", dir0, "--verbose"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
@@ -90,7 +98,8 @@ class Daemon:
             self.process.wait()
 
 def start(dir: str):
-    daemon = Daemon(dir)
+    os.environ['RTCSHARE_DIR'] = dir
+    daemon = Daemon()
     daemon.start()
 
     # Don't exit until the output thread exits

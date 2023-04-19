@@ -13,7 +13,9 @@
   "dependencies": {
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
-    "@figurl/interface": "^0.1.15",
+    "@figurl/interface": "^0.2.5",
+    "@figurl/spike-sorting-views": "^0.2.16",
+    "@figurl/timeseries-views": "^0.2.10",
     "@mui/icons-material": "^5.11.0",
     "@mui/material": "^5.11.6",
     "chonky-icon-fontawesome": "^2.3.2",

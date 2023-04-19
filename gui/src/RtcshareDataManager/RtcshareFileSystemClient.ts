@@ -1,5 +1,5 @@
 import postApiRequest from "../postApiRequest"
-import { isReadDirResponse, isReadFileResponse, ReadDirRequest, ReadFileRequest, RtcshareDir, RtcshareFile } from "../RtcshareRequest"
+import { isReadDirResponse, isReadFileResponse, ReadDirRequest, ReadFileRequest, RtcshareDir, RtcshareFile, ServiceQueryRequest, isServiceQueryResponse } from "../RtcshareRequest"
 
 class RtcshareFileSystemClient {
     #rootDir?: RtcshareDir
@@ -70,6 +70,19 @@ class RtcshareFileSystemClient {
             return binaryPayload
         }
 
+    }
+    async serviceQuery(serviceName: string, query: any): Promise<{result: any, binaryPayload?: ArrayBuffer}> {
+        const req: ServiceQueryRequest = {
+            type: 'serviceQueryRequest',
+            serviceName,
+            query
+        }
+        const {response: resp, binaryPayload} = await postApiRequest(req)
+        if (!isServiceQueryResponse(resp)) {
+            console.warn(resp)
+            throw Error('Unexpected serviceQuery response')
+        }
+        return {result: resp.result, binaryPayload}
     }
     async _retrieveDir(path: string): Promise<{dirs: RtcshareDir[], files: RtcshareFile[]}> {
         const req: ReadDirRequest = {

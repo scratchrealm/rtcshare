@@ -3,6 +3,7 @@ import { IconButton } from "@mui/material";
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import { useRtcshare } from "../useRtcshare";
 import TextFileView from "./TextFileView";
+import VideoFileView from "./VideoFileView/VideoFileView";
 import YamlFileView from "./YamlFileView";
 
 type Props = {
@@ -60,7 +61,11 @@ const FileViewDocument: FunctionComponent<FileViewDocumentProps> = ({path, refre
     useEffect(() => {
         if (!client) return
         if (!path) return
-        if (!isTextFileType(path)) return // don't load content for non-text files
+        if (!isTextFileType(path)) {
+            setStatus('loaded')
+            setContent('')
+            return // don't load content for non-text files
+        }
         setStatus('loading')
         let canceled = false
         ; (async () => {
@@ -85,7 +90,7 @@ const FileViewDocument: FunctionComponent<FileViewDocumentProps> = ({path, refre
     if (status === 'loading') return <div style={{color: 'blue'}}>loading</div>
     if (status === 'error') return <div style={{color: 'red'}}>Error: {error}</div>
 
-    if (!content) {
+    if (content === undefined) {
         return <div style={{color: 'red'}}>no content</div>
     }
     if (path.endsWith('.yaml')) {
@@ -94,9 +99,20 @@ const FileViewDocument: FunctionComponent<FileViewDocumentProps> = ({path, refre
     else if (isTextFileType(path)) {
         return <TextFileView content={content} />
     }
+    else if (isVideoFileType(path)) {
+        return <VideoFileView path={path} width={width} height={height} />
+    }
     else {
         return <div>No preview for file of this type</div>
     }
+}
+
+function isVideoFileType(path: string): boolean {
+    const extensions = ['.mp4', '.webm', '.avi', '.mov', '.mkv']
+    for (const ext of extensions) {
+        if (path.endsWith(ext)) return true
+    }
+    return false
 }
 
 function isTextFileType(path: string): boolean {
