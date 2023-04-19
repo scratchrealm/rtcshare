@@ -71,14 +71,16 @@ class Daemon:
         self.stop()
         sys.exit(0)
 
-    def start(self):
+    def start(self, *, enable_remote_access: bool = False):
         socket_server_port = self.start_socket_server()
         os.environ["RTCSHARE_SOCKET_PORT"] = str(socket_server_port)  # Pass the port number to the js server
 
         dir0 = os.environ.get('RTCSHARE_DIR')
+        cmd = ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", dir0, "--verbose"]
+        if enable_remote_access:
+            cmd.append("--enable-remote-access")
         self.process = subprocess.Popen(
-            # ["rtcshare", "start", "--dir", ".", "--verbose"],
-            ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", dir0, "--verbose"],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
@@ -97,10 +99,10 @@ class Daemon:
             self.process.terminate()
             self.process.wait()
 
-def start(dir: str):
+def start(dir: str, *, enable_remote_access: bool = False):
     os.environ['RTCSHARE_DIR'] = dir
     daemon = Daemon()
-    daemon.start()
+    daemon.start(enable_remote_access=enable_remote_access)
 
     # Don't exit until the output thread exits
     daemon.output_thread.join()
