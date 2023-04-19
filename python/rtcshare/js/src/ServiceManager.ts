@@ -8,11 +8,12 @@ type ServiceConfig = {
 class ServiceManager {
     constructor() {
     }
-    async queryService(serviceName: string, query: any): Promise<{ result: any, binaryPayload?: Buffer | undefined }> {
+    async queryService(serviceName: string, query: any, dir: string): Promise<{ result: any, binaryPayload?: Buffer | undefined }> {
         const responseData = await sendPythonProgramRequest({
             type: 'serviceQuery',
             serviceName,
-            query
+            query,
+            dir
         })
 
         const ii = responseData.indexOf('\n')

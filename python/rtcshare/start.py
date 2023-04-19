@@ -28,7 +28,7 @@ class Daemon:
     def _handle_client(self, client_socket: socket.socket):
         received_data = b''
         while True:
-            data0 = client_socket.recv(4)
+            data0 = client_socket.recv(4096)
             received_data += data0
             if data0.endswith(b'\n'):
                 break

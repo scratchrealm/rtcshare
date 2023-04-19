@@ -139,13 +139,15 @@ export type ServiceQueryRequest = {
     type: 'serviceQueryRequest'
     serviceName: string
     query: any
+    dir?: string
 }
 
 export const isServiceQueryRequest = (x: any): x is ServiceQueryRequest => (
     validateObject(x, {
         type: isEqualTo('serviceQueryRequest'),
         serviceName: isString,
-        query: () => (true)
+        query: () => (true),
+        dir: optional(isString)
     })
 )
 

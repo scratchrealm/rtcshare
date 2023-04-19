@@ -4,10 +4,12 @@ from typing import Tuple
 import cv2
 
 
-def handle_video_query(query: dict) -> Tuple[dict, bytes]:
+def handle_video_query(query: dict, *, dir: str) -> Tuple[dict, bytes]:
     type0 = query['type']
     if type0 == 'get_video_info':
         path = query['path']
+        if path.startswith('$dir'):
+            path = f'{dir}/{path[len("$dir"):]}'
         if not path.startswith('rtcshare://'):
             raise Exception(f'Invalid path: {path}')
         relpath = path[len('rtcshare://'):]
@@ -20,6 +22,8 @@ def handle_video_query(query: dict) -> Tuple[dict, bytes]:
         return {'info': info}, b''
     elif type0 == 'get_video_frames':
         path = query['path']
+        if path.startswith('$dir'):
+            path = f'{dir}/{path[len("$dir"):]}'
         start_frame = query['start_frame']
         end_frame = query['end_frame']
         quality = query['quality']
