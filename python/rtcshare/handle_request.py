@@ -2,7 +2,7 @@ import json
 from .handle_video_query import handle_video_query
 
 
-def handle_request(request: dict, *, dir: str) -> bytes:
+def handle_request(request: dict) -> bytes:
     type0 = request['type']
     if type0 == 'serviceQuery':
         service_name = request['serviceName']
