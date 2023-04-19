@@ -66,7 +66,7 @@ class VideoClient {
                 path: this.uri,
                 start_frame: i * numFramesPerChunk,
                 end_frame: Math.min((i + 1) * numFramesPerChunk, info.frame_count),
-                quality: 90
+                quality: 40
             })
             if (!binaryPayload) throw Error('No binary payload')
             this.#chunks[i] = splitMjpeg(binaryPayload)

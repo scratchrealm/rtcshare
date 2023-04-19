@@ -12,6 +12,7 @@ class WebrtcConnectionToService {
     constructor() {
         const clientId = randomAlphaString(10)
         const peer = new SimplePeer({initiator: true})
+        ;(window as any).simple_peer = peer
         const incomingMultipartMessageManager = new IncomingMultipartMessageManager()
         peer.on('signal', async s => {
             const request: WebrtcSignalingRequest = {
@@ -129,5 +130,48 @@ export const sleepMsec = async (msec: number): Promise<void> => {
         }, msec)
     })
 }
+
+function reportWebrtcStats() {
+    const peer = (window as any).simple_peer
+    if (!peer) return
+    let totalReceivedBytes = 0
+    let totalSentBytes = 0
+    peer._pc.getStats().then((stats: any) => {
+        const candidatePairs: {[id: string]: any} = {}
+        stats.forEach((stat: any) => {
+            if (stat.type === 'candidate-pair') {
+                candidatePairs[stat.id] = stat
+            }
+        })
+        const localCandidates: {[id: string]: any} = {}
+        stats.forEach((stat: any) => {
+            if (stat.type === 'local-candidate') {
+                localCandidates[stat.id] = stat
+            }
+        })
+        const remoteCandidates: {[id: string]: any} = {}
+        stats.forEach((stat: any) => {
+            if (stat.type === 'remote-candidate') {
+                remoteCandidates[stat.id] = stat
+            }
+        })
+        stats.forEach((stat: any) => {
+            if (stat.type === 'transport') {
+                totalReceivedBytes = stat.bytesReceived
+                totalSentBytes = stat.bytesSent
+                const pairId = stat.selectedCandidatePairId
+                const pair = candidatePairs[pairId]
+                const localCandidate = localCandidates[pair.localCandidateId]
+                const remoteCandidate = remoteCandidates[pair.remoteCandidateId]
+                console.info(stat)
+                console.info(`TRANSPORT ${localCandidate.id} (${localCandidate.candidateType}) ${remoteCandidate.id} (${remoteCandidate.candidateType}) ${stat.bytesReceived} ${stat.bytesSent}`)
+            }
+        })
+        console.info(`TOTAL BYTES RECEIVED: ${totalReceivedBytes}`)
+        console.info(`TOTAL BYTES SENT: ${totalSentBytes}`)
+    })
+}
+
+(window as any).reportWebrtcStats = reportWebrtcStats
 
 export default WebrtcConnectionToService
