@@ -1,3 +1,4 @@
+from typing import List
 import os
 import sys
 import json
@@ -6,7 +7,9 @@ from threading import Thread
 import signal
 from pathlib import Path
 import socket
+import importlib
 from .handle_request import handle_request
+from .RtcshareContext import RtcshareContext
 
 this_directory = Path(__file__).parent
 
@@ -14,6 +17,13 @@ class Daemon:
     def __init__(self):
         self.process = None
         self.output_thread = None
+        self.context = RtcshareContext()
+    
+    def initialize_plugins(self, plugin_names: List[str]):
+        for plugin_name in plugin_names:
+            module = importlib.import_module(plugin_name)
+            plugin = getattr(module, "RtcsharePlugin")
+            plugin.initialize(self.context)
 
     def _forward_output(self):
         while True:
@@ -36,7 +46,7 @@ class Daemon:
 
         # Process data received from rtcshare-js and send a response
         try:
-            response_data = handle_request(request)
+            response_data = handle_request(request, self.context)
         except Exception as e:
             error_string = str(e)
             response_data = None
@@ -99,9 +109,9 @@ class Daemon:
             self.process.terminate()
             self.process.wait()
 
-def start(dir: str, *, enable_remote_access: bool = False):
+def start(dir: str, *, enable_remote_access: bool = False, plugin_names: List[str] = []):
     os.environ['RTCSHARE_DIR'] = dir
-    daemon = Daemon()
+    daemon = Daemon(plugin_names=plugin_names)
     daemon.start(enable_remote_access=enable_remote_access)
 
     # Don't exit until the output thread exits
