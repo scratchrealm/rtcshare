@@ -1,5 +1,6 @@
 import json
 from .handle_video_query import handle_video_query
+from .handle_zarr_query import handle_zarr_query
 
 
 def handle_request(request: dict) -> bytes:
@@ -14,6 +15,9 @@ def handle_request(request: dict) -> bytes:
                 return json.dumps({'test': True}).encode('utf-8') + b'\n' + b'test-binary-payload'
             elif service_name == 'video':
                 result, binary_payload = handle_video_query(query, dir=dir)
+                return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
+            elif service_name == 'audio':
+                result, binary_payload = handle_zarr_query(query, dir=dir)
                 return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
             else:
                 raise Exception(f'No such service: {service_name}')
