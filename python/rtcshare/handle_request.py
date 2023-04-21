@@ -16,7 +16,7 @@ def handle_request(request: dict) -> bytes:
             elif service_name == 'video':
                 result, binary_payload = handle_video_query(query, dir=dir)
                 return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
-            elif service_name == 'audio':
+            elif service_name == 'zarr':
                 result, binary_payload = handle_zarr_query(query, dir=dir)
                 return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
             else:
