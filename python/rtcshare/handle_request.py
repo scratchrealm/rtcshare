@@ -8,12 +8,18 @@ def handle_request(request: dict) -> bytes:
         service_name = request['serviceName']
         query = request['query']
         dir = request['dir']
-        if service_name == 'test':
-            return json.dumps({'test': True}).encode('utf-8') + b'\n' + b'test-binary-payload'
-        elif service_name == 'video':
-            result, binary_payload = handle_video_query(query, dir=dir)
-            return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
+        print(f'Got service query: {service_name}')
+        try:
+            if service_name == 'test':
+                return json.dumps({'test': True}).encode('utf-8') + b'\n' + b'test-binary-payload'
+            elif service_name == 'video':
+                result, binary_payload = handle_video_query(query, dir=dir)
+                return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
+            else:
+                raise Exception(f'No such service: {service_name}')
+        except Exception as e:
+            print(f'Error while handling service query: {e}')
+            return b'\n' + str(e).encode('utf-8')
     else:
         raise Exception(f'Unknown request type: {type0}')
-    print(f'Got request: {request}')
     
