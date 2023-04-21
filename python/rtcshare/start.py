@@ -111,7 +111,8 @@ class Daemon:
 
 def start(dir: str, *, enable_remote_access: bool = False, plugin_names: List[str] = []):
     os.environ['RTCSHARE_DIR'] = dir
-    daemon = Daemon(plugin_names=plugin_names)
+    daemon = Daemon()
+    daemon.initialize_plugins(plugin_names)
     daemon.start(enable_remote_access=enable_remote_access)
 
     # Don't exit until the output thread exits
