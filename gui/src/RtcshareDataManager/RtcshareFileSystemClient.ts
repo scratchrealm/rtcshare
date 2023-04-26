@@ -71,11 +71,14 @@ class RtcshareFileSystemClient {
         }
 
     }
-    async serviceQuery(serviceName: string, query: any): Promise<{result: any, binaryPayload?: ArrayBuffer}> {
+    async serviceQuery(serviceName: string, query: any, userId: string | undefined=undefined): Promise<{result: any, binaryPayload?: ArrayBuffer}> {
         const req: ServiceQueryRequest = {
             type: 'serviceQueryRequest',
             serviceName,
             query
+        }
+        if (userId) {
+            req.userId = userId
         }
         const {response: resp, binaryPayload} = await postApiRequest(req)
         if (!isServiceQueryResponse(resp)) {

@@ -140,6 +140,7 @@ export type ServiceQueryRequest = {
     serviceName: string
     query: any
     dir?: string
+    userId?: string
 }
 
 export const isServiceQueryRequest = (x: any): x is ServiceQueryRequest => (
@@ -147,7 +148,8 @@ export const isServiceQueryRequest = (x: any): x is ServiceQueryRequest => (
         type: isEqualTo('serviceQueryRequest'),
         serviceName: isString,
         query: () => (true),
-        dir: optional(isString)
+        dir: optional(isString),
+        userId: optional(isString)
     })
 )
 

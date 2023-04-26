@@ -11,6 +11,7 @@ def rtcshare():
 @click.option('--plugins', required=False, default='', help='Comma-separated list of plugins to load.')
 def start(dir: str, enable_remote_access: bool, plugins: str):
     plugin_names = plugins.split(',')
+    plugin_names = [plugin_name for plugin_name in plugin_names if plugin_name]
     start_function(dir, enable_remote_access=enable_remote_access, plugin_names=plugin_names)
 
 # Add the start command to the rtcshare group

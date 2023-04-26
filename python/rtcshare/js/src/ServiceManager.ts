@@ -8,13 +8,17 @@ type ServiceConfig = {
 class ServiceManager {
     constructor() {
     }
-    async queryService(serviceName: string, query: any, dir: string): Promise<{ result: any, binaryPayload?: Buffer | undefined }> {
-        const responseData = await sendPythonProgramRequest({
+    async queryService(serviceName: string, query: any, dir: string, userId?: string): Promise<{ result: any, binaryPayload?: Buffer | undefined }> {
+        const req: any = {
             type: 'serviceQuery',
             serviceName,
             query,
             dir
-        })
+        }
+        if (userId) {
+            req.userId = userId
+        }
+        const responseData = await sendPythonProgramRequest(req)
 
         const ii = responseData.indexOf('\n')
         if (ii === -1) {

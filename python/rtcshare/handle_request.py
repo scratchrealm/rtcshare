@@ -10,6 +10,7 @@ def handle_request(request: dict, context: RtcshareContext) -> bytes:
         service_name = request['serviceName']
         query = request['query']
         dir = request['dir']
+        user_id = request.get('user_id', None)
         print(f'Got service query: {service_name}')
         try:
             if service_name == 'test':
@@ -21,7 +22,7 @@ def handle_request(request: dict, context: RtcshareContext) -> bytes:
                 result, binary_payload = handle_zarr_query(query, dir=dir)
                 return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
             else:
-                result, binary_payload = context.handle_query(service_name, query, dir=dir)
+                result, binary_payload = context.handle_query(service_name, query, dir=dir, user_id=user_id)
                 return json.dumps(result).encode('utf-8') + b'\n' + binary_payload
         except Exception as e:
             print(f'Error while handling service query: {e}')
