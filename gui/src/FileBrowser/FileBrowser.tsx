@@ -85,7 +85,7 @@ const FileBrowser: FunctionComponent<Props> = ({onOpenFile, currentFolderPath, s
                 }
             }
         }
-    }, [])
+    }, [onOpenFile, setCurrentFolderPath])
     
     return (
         <ChonkyFileBrowser
