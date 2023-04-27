@@ -10,7 +10,7 @@ def handle_request(request: dict, context: RtcshareContext) -> bytes:
         service_name = request['serviceName']
         query = request['query']
         dir = request['dir']
-        user_id = request.get('user_id', None)
+        user_id = request.get('userId', None)
         print(f'Got service query: {service_name}')
         try:
             if service_name == 'test':
