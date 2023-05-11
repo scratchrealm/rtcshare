@@ -2,25 +2,28 @@
 
 Share a directory of files using WebRTC. For use with Figurl.
 
-## Usage
-
-No need to clone this repo.
+## Installation
 
 Prerequisite: NodeJS >= v16
 
 ```
-npx rtcshare@latest start --dir /path/to/directory/to/share --verbose
+pip install --upgrade rtcshare
+```
+
+## Usage
+
+```
+rtcshare start --dir /path/to/directory/to/share --verbose
 
 # Optionally add the --enable-remote-access option
+# Optionally include plugins, for example --plugins isa,stan-playground
 ```
 
 The console output will contain links for attaching to your service from within a web browser.
 
 When the service is running with --enable-remote-access, Figurl can access files in your shared directory, as in this example:
 
-https://figurl.org/f?v=gs://figurl/figneuro-1&d=rtcshare://sleap_example/d.json&sh=https://rtcshare-proxy.herokuapp.com/s/49d84fc53ac4b444ef03&label=rtcshare%20-%20sleap
-
-## Using a TURN server
+## Using a TURN server (optional)
 
 A direct connection between peers is not always possible. In this case, a [TURN server](https://webrtc.org/getting-started/turn-server) can be used to relay the data.
 

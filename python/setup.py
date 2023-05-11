@@ -8,7 +8,7 @@ from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 # This will be used for both install and develop
 def npm_install_command(command_subclass):
@@ -21,8 +21,9 @@ def npm_install_command(command_subclass):
     def modified_run(self):
         # Build the Node.js package
         print("Building Node.js package...")
-        subprocess.check_call(['npm', 'install'], cwd=f'{this_directory}/rtcshare/js')
-        subprocess.check_call(['npm', 'run', 'build'], cwd=f'{this_directory}/rtcshare/js')
+        # apparently shell=True is necessary for Windows
+        subprocess.check_call(['npm', 'install'], cwd=f'{this_directory}/rtcshare/js', shell=True)
+        subprocess.check_call(['npm', 'run', 'build'], cwd=f'{this_directory}/rtcshare/js', shell=True)
         orig_run(self)
 
     command_subclass.run = modified_run

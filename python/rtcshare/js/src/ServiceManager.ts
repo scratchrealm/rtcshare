@@ -43,7 +43,9 @@ function sendPythonProgramRequest(request: any): Promise<Buffer> {
         }
         const client = new net.Socket()
 
-        client.connect(port, "localhost", () => {
+
+        // apparently windows doesn't like "localhost".
+        client.connect(port, "127.0.0.1", () => {
             client.write(JSON.stringify(request) + '\n')
         });
 

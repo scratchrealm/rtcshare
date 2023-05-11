@@ -1,7 +1,6 @@
 import os
 import io
 from typing import Tuple
-import cv2
 
 
 def handle_video_query(query: dict, *, dir: str) -> Tuple[dict, bytes]:
@@ -46,6 +45,11 @@ def handle_video_query(query: dict, *, dir: str) -> Tuple[dict, bytes]:
         raise Exception(f'Unknown video query type: {type0}')
 
 def get_video_info(path: str) -> dict:
+    try:
+        import cv2
+    except ImportError:
+        raise Exception('cv2 is not installed. Use pip install opencv-python')
+
     print(f'Getting video info from {path}')
     
     # Open the video file
@@ -69,6 +73,11 @@ def get_video_info(path: str) -> dict:
     }
 
 def get_frames_from_video_file(path: str, *, start_frame: int, end_frame: int, quality: int) -> bytes:
+    try:
+        import cv2
+    except ImportError:
+        raise Exception('cv2 is not installed. Use pip install opencv-python')
+
     print(f'Getting frames from {path} ({start_frame} - {end_frame})')
 
     # Open the video file
