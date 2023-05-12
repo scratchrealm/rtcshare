@@ -18,6 +18,22 @@ type apiRequest = {
     options: apiRequestOptions
 }
 
+/*
+5/12/23
+Today I experimented with the idea of supporting streaming responses,
+but after a lot of work I decided to abandon that idea.
+I want to put down some notes about why I decided to abandon it, so that I don't forget.
+I implemented streaming responses by allowing binaryPayload to be BufferStream (a custom type).
+Then the messages sent back would be ResponsePart messages, that would need to be reassembled by the client.
+It was a lot of work to implement because I had to support all three mechanisms (direct http, http proxy, webrtc).
+Then support the reassembly on the clients (rtcshare-gui and figurl-gui).
+Things seemed to work, but it added a lot of complexity.
+Then I realized that the same thing could be accomplished by simply having the clients request things in chunks,
+and make multiple concurrent requests. This is simpler and puts more flexibility on the client/server communication.
+Aside from the complexity, another reason to abandon the ideas was that it was even more complicated for serviceQuery
+requests. That would be a lot of additional work.
+Instead, it's best to just implement chunking options.
+*/
 
 export const handleApiRequest = async (props: apiRequest): Promise<{response: RtcshareResponse, binaryPayload?: Buffer | undefined}> => {
     const { request, dirManager, serviceManager, signalCommunicator, options } = props
