@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages, Command
 from setuptools.command.install import install
 from setuptools.command.develop import develop
+import os
 import subprocess
 
 # read the contents of README.md
@@ -21,9 +22,17 @@ def npm_install_command(command_subclass):
     def modified_run(self):
         # Build the Node.js package
         print("Building Node.js package...")
-        # apparently shell=True is necessary for Windows
-        subprocess.check_call(['npm', 'install'], cwd=f'{this_directory}/rtcshare/js', shell=True)
-        subprocess.check_call(['npm', 'run', 'build'], cwd=f'{this_directory}/rtcshare/js', shell=True)
+        # apparently shell=True is necessary for Windows, but shell=False is necessary for Linux
+        # if we are on windows, we need to use shell=True
+        if os.name == 'nt':
+            shell = True
+        elif os.name == 'posix':
+            shell = False
+        else:
+            print(f'Warning: unrecognized os.name: {os.name}')
+            shell = False
+        subprocess.check_call(['npm', 'install'], cwd=f'{this_directory}/rtcshare/js', shell=shell)
+        subprocess.check_call(['npm', 'run', 'build'], cwd=f'{this_directory}/rtcshare/js', shell=shell)
         orig_run(self)
 
     command_subclass.run = modified_run
