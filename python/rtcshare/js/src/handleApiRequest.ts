@@ -1,3 +1,4 @@
+import BufferStream from "./BufferStream";
 import DirManager from "./DirManager";
 import handleServiceQueryRequest from "./handleServiceQueryRequest";
 import { isProbeRequest, isReadDirRequest, isReadFileRequest, isServiceQueryRequest, isWebrtcSignalingRequest, isWriteFileRequest, ProbeResponse, protocolVersion, ReadDirRequest, ReadDirResponse, ReadFileRequest, ReadFileResponse, RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest, WebrtcSignalingResponse, WriteFileRequest, WriteFileResponse } from "./RtcshareRequest";
@@ -19,7 +20,7 @@ type apiRequest = {
 }
 
 
-export const handleApiRequest = async (props: apiRequest): Promise<{response: RtcshareResponse, binaryPayload?: Buffer | undefined}> => {
+export const handleApiRequest = async (props: apiRequest): Promise<{response: RtcshareResponse, binaryPayload?: Buffer | BufferStream | undefined}> => {
     const { request, dirManager, serviceManager, signalCommunicator, options } = props
     const webrtcFlag = options.webrtc ? "Webrtc" : ""
 
@@ -75,7 +76,7 @@ const handleReadDirRequest = async (request: ReadDirRequest, dirManager: DirMana
     return {response}
 }
 
-const handleReadFileRequest = async (request: ReadFileRequest, dirManager: DirManager): Promise<{response: ReadFileResponse, binaryPayload: Buffer}> => {
+const handleReadFileRequest = async (request: ReadFileRequest, dirManager: DirManager): Promise<{response: ReadFileResponse, binaryPayload: Buffer | BufferStream}> => {
     const buf = await dirManager.readFile(request.path, request.start, request.end)
     const response: ReadFileResponse = {type: 'readFileResponse'}
     return {response, binaryPayload: buf}

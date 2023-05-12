@@ -1,9 +1,10 @@
 import SimplePeer from 'simple-peer';
 import wrtc from 'wrtc';
+import BufferStream from './BufferStream';
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import DirManager from './DirManager';
 import { handleApiRequest } from './handleApiRequest';
-import { isRtcsharePeerRequest, RtcsharePeerResponse } from './RtcsharePeerRequest';
+import { isRtcsharePeerRequest, RtcsharePeerResponse, RtcsharePeerResponsePart } from './RtcsharePeerRequest';
 import ServiceManager from './ServiceManager';
 import SignalCommunicator, { SignalCommunicatorConnection, sleepMsec } from './SignalCommunicator';
 
@@ -106,22 +107,53 @@ const onData = (d: ArrayBuffer, props: CallbackProps) => {
         cnxn.close()
         return
     }
-    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, serviceManager: props.serviceMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then(({response, binaryPayload}) => {
-        const resp: RtcsharePeerResponse = {
-            type: 'rtcsharePeerResponse',
-            response,
-            requestId: peerRequest.requestId
-        }
+    handleApiRequest({request: peerRequest.request, dirManager: dirMgr, serviceManager: props.serviceMgr, signalCommunicator, options: {verbose: true, webrtc: true}}).then(async ({response, binaryPayload}) => {
         try {
             if (cnxn.wasClosed()) {
                 console.warn(`\tSignal communicator connection was closed before the response could be sent.`)
             } else {
-                const mm = createMessageWithBinaryPayload(resp, binaryPayload)
-                if (mm.byteLength > maxWebrtcMessageLength) {
-                    sendMessageInParts(peer, mm)
+
+                if ((binaryPayload) && (typeof binaryPayload === 'object') && (binaryPayload instanceof BufferStream)) {
+                    let partIndex = 0
+                    while (true) {
+                        let buf: Buffer | undefined
+                        buf = await binaryPayload.read()
+                        if (!buf) {
+                            if (partIndex !== binaryPayload.numParts) {
+                                throw Error(`Unexpected number of parts. Expected ${binaryPayload.numParts}, got ${partIndex}`)
+                            }
+                            break
+                        }
+                        const resp: RtcsharePeerResponsePart = {
+                            type: 'rtcsharePeerResponsePart',
+                            partIndex,
+                            numParts: binaryPayload.numParts,
+                            response, // we're going to send the response in all the parts even though it's not necessary (the response should be very small in the case of a multi-part binary payload)
+                            requestId: peerRequest.requestId
+                        }
+                        const mm = createMessageWithBinaryPayload(resp, buf)
+                        if (mm.byteLength > maxWebrtcMessageLength) {
+                            sendMessageInParts(peer, mm)
+                        }
+                        else {
+                            peer.send(mm)
+                        }
+                        partIndex++
+                    }
                 }
-                else {
-                    peer.send(mm)
+                else if ((binaryPayload === undefined) || (binaryPayload instanceof Buffer)) {
+                    const resp: RtcsharePeerResponse = {
+                        type: 'rtcsharePeerResponse',
+                        response,
+                        requestId: peerRequest.requestId
+                    }
+                    const mm = createMessageWithBinaryPayload(resp, binaryPayload as Buffer | undefined)
+                    if (mm.byteLength > maxWebrtcMessageLength) {
+                        sendMessageInParts(peer, mm)
+                    }
+                    else {
+                        peer.send(mm)
+                    }
                 }
             }
         } catch(err) {

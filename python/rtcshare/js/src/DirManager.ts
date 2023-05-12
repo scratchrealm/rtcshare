@@ -1,6 +1,7 @@
 import fs from 'fs'
 import YAML from 'js-yaml'
 import { RtcshareDir, RtcshareFile } from './RtcshareRequest'
+import BufferStream from './BufferStream'
 
 class DirManager {
     #config: {[k: string]: any}
@@ -43,16 +44,24 @@ class DirManager {
 
         return {files, dirs}
     }
-    async readFile(path: string, start: number | undefined, end: number | undefined): Promise<Buffer> {
+    async readFile(path: string, start: number | undefined, end: number | undefined): Promise<Buffer | BufferStream> {
         if (!isShareable(path)) {
             throw Error(`File not shareable: ${path}`)
         }
         if (start === undefined) {
             if (end !== undefined) throw Error('end is not undefined even though start is undefined')
-            return await fs.promises.readFile(`${this.dir}/${path}`)
         }
         else {
             if (end === undefined) throw Error('end is undefined even though start is not undefined')
+        }   
+        start = start || 0
+        // get the file size if end is undefined
+        if (end === undefined) {
+            const stat = await fs.promises.stat(`${this.dir}/${path}`)
+            end = stat.size
+        }
+        const chunkSize = 1000 * 1000
+        if (end - start <= chunkSize)  {
             const f = await fs.promises.open(`${this.dir}/${path}`, 'r')
             try {
                 const buffer = Buffer.alloc(end - start)
@@ -62,6 +71,26 @@ class DirManager {
             finally {
                 f.close()
             }
+        }
+        else {
+            const numChunks = Math.ceil((end - start) / chunkSize)
+            const bufferStream = new BufferStream(numChunks)
+            ;(async () => {
+                const f = await fs.promises.open(`${this.dir}/${path}`, 'r')
+                try {
+                    for (let position = start; position < end; position += chunkSize) {
+                        const buffer = Buffer.alloc(Math.min(end - position, chunkSize))
+                        const length = Math.min(end - position, chunkSize)
+                        await f.read({buffer, position, length})
+                        bufferStream.write(buffer)
+                    }
+                    bufferStream.end()
+                }
+                finally {
+                    f.close()
+                }
+            })()
+            return bufferStream
         }
     }
     async writeFile(path: string, fileDataBase64: string) {

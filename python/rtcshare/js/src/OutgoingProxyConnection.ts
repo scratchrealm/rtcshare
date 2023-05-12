@@ -1,11 +1,12 @@
 import WebSocket from 'ws'
-import { InitializeMessageFromService, isAcknowledgeMessageToService, isRequestFromClient, PingMessageFromService, RequestFromClient, ResponseToClient } from './ConnectorHttpProxyTypes'
+import { InitializeMessageFromService, isAcknowledgeMessageToService, isRequestFromClient, PingMessageFromService, RequestFromClient, ResponseToClient, ResponseToClientPart } from './ConnectorHttpProxyTypes'
 import { handleApiRequest } from './handleApiRequest'
 import { isRtcshareRequest, RtcshareResponse } from './RtcshareRequest'
 import DirManager from './DirManager'
 import SignalCommunicator from './SignalCommunicator'
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload'
 import ServiceManager from './ServiceManager'
+import BufferStream from './BufferStream'
 
 const proxyUrl = process.env['RTCSHARE_PROXY'] || `https://rtcshare-proxy.herokuapp.com`
 const proxySecret = process.env['RTCSHARE_PROXY_SECRET'] || 'rtcshare-no-secret'
@@ -110,7 +111,7 @@ class OutgoingProxyConnection {
             this.#webSocket.send(JSON.stringify(resp))    
             return
         }
-        let rtcshareResponse: {response: RtcshareResponse, binaryPayload?: Buffer}
+        let rtcshareResponse: {response: RtcshareResponse, binaryPayload?: Buffer | BufferStream}
         try {
             rtcshareResponse = await handleApiRequest({request: rr, dirManager: this.dirManager, serviceManager: this.serviceManager, signalCommunicator: this.signalCommunicator, options: {...this.o, proxy: true}})
         }
@@ -125,13 +126,56 @@ class OutgoingProxyConnection {
             return
         }
         if (!this.#webSocket) return
-        const responseToClient: ResponseToClient = {
-            type: 'responseToClient',
-            requestId: request.requestId,
-            response: rtcshareResponse.response
+        const binaryPayload = rtcshareResponse.binaryPayload
+        if ((binaryPayload) && (typeof binaryPayload === 'object') && (binaryPayload instanceof BufferStream)) {
+            let partIndex = 0
+            while (true) {
+                const buf = await binaryPayload.read()
+                if (!buf) {
+                    if (partIndex !== binaryPayload.numParts) {
+                        console.error(`Unexpected number of parts. Expected ${binaryPayload.numParts}, got ${partIndex}`)
+                        const errorResponse: ResponseToClient = {
+                            type: 'responseToClient',
+                            requestId: request.requestId,
+                            response: {},
+                            error: `Unexpected number of parts. Expected ${binaryPayload.numParts}, got ${partIndex}`
+                        }
+                        this.#webSocket.send(JSON.stringify(errorResponse))
+                        return
+                    }
+                    break
+                }
+                const responseToClientPart: ResponseToClientPart = {
+                    type: 'responseToClientPart',
+                    requestId: request.requestId,
+                    partIndex,
+                    numParts: binaryPayload.numParts,
+                    response: partIndex === 0 ? rtcshareResponse.response : {},
+                    error: undefined
+                }
+                const mm = createMessageWithBinaryPayload(responseToClientPart, buf)
+                this.#webSocket.send(mm)
+                partIndex++
+            }
         }
-        const mm = createMessageWithBinaryPayload(responseToClient, rtcshareResponse.binaryPayload)
-        this.#webSocket.send(mm)
+        else if ((binaryPayload === undefined) || (binaryPayload instanceof Buffer)) {
+            const responseToClient: ResponseToClient = {
+                type: 'responseToClient',
+                requestId: request.requestId,
+                response: rtcshareResponse.response
+            }
+            const mm = createMessageWithBinaryPayload(responseToClient, binaryPayload as undefined | Buffer)
+            this.#webSocket.send(mm)
+        }
+        else {
+            const errorResponse: ResponseToClient = {
+                type: 'responseToClient',
+                requestId: request.requestId,
+                response: {},
+                error: `Unexpected binary payload type: ${typeof binaryPayload}`
+            }
+            this.#webSocket.send(JSON.stringify(errorResponse))
+        }
     }
     public get url() {
         return `${proxyUrl}/s/${this.serviceId}`

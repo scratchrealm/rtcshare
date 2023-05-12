@@ -11,6 +11,7 @@ import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import { handleApiRequest } from './handleApiRequest';
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import ServiceManager from './ServiceManager';
+import BufferStream from './BufferStream';
 const allowedOrigins = ['https://figurl.org', 'https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001']
 
 class Server {
@@ -44,7 +45,7 @@ class Server {
                 return
             }
             ;(async () => {
-                let rrr: {response: RtcshareResponse, binaryPayload?: Buffer}
+                let rrr: {response: RtcshareResponse, binaryPayload?: Buffer | BufferStream}
                 try {
                     rrr = await handleApiRequest({request, dirManager: this.#dirManager, serviceManager: this.#serviceManager, signalCommunicator, options: {verbose: this.a.verbose, proxy: false}})
                 }
@@ -52,8 +53,48 @@ class Server {
                     resp.status(500).send(err.message)
                     return
                 }
-                const mm = createMessageWithBinaryPayload(rrr.response, rrr.binaryPayload)
-                resp.status(200).send(Buffer.from(mm)) // important to convert to a buffer prior to sending
+
+                const binaryPayload = rrr.binaryPayload
+                if ((binaryPayload) && (typeof binaryPayload === 'object') && (binaryPayload instanceof BufferStream)) {
+                    let partIndex = 0
+                    while (true) {
+                        let buf: Buffer | undefined
+                        try {
+                            buf = await binaryPayload.read()
+                        }
+                        catch(err) {
+                            console.error(err)
+                            resp.destroy()
+                            return
+                        }
+                        if (!buf) {
+                            if (partIndex !== binaryPayload.numParts) {
+                                console.error(`Unexpected number of parts. Expected ${binaryPayload.numParts}, got ${partIndex}`)
+                                resp.status(500).send(`Unexpected number of parts. Expected ${binaryPayload.numParts}, got ${partIndex}`)
+                                return
+                            }
+                            resp.end()
+                            break
+                        }
+                        if (partIndex === 0) {
+                            const mm = createMessageWithBinaryPayload(rrr.response, buf)
+                            resp.status(200)
+                            resp.write(Buffer.from(mm)) // important to convert to a buffer prior to sending
+                        }
+                        else {
+                            resp.write(buf)
+                        }
+                        partIndex++
+                    }
+                }
+                else if ((binaryPayload === undefined) || (binaryPayload instanceof Buffer)) {
+                    const mm = createMessageWithBinaryPayload(rrr.response, binaryPayload as Buffer | undefined)
+                    resp.status(200).send(Buffer.from(mm)) // important to convert to a buffer prior to sending
+                }
+                else {
+                    console.error(`Unexpected binary payload type: ${typeof binaryPayload}`)
+                    resp.destroy()
+                }
             })()
         })
         const signalCommunicator = new SignalCommunicator()

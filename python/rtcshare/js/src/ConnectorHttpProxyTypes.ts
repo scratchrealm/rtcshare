@@ -1,4 +1,4 @@
-import validateObject, { isEqualTo, isString, optional } from "./validateObject"
+import validateObject, { isEqualTo, isNumber, isString, optional } from "./validateObject"
 
 export type RequestFromClient = {
     type: 'requestFromClient'
@@ -24,6 +24,26 @@ export type ResponseToClient = {
 export const isResponseToClient = (x: any): x is ResponseToClient => {
     return validateObject(x, {
         type: isEqualTo('responseToClient'),
+        response: () => (true),
+        requestId: optional(isString),
+        error: optional(isString)
+    })
+}
+
+export type ResponseToClientPart = {
+    type: 'responseToClientPart'
+    requestId?: string // added when sending over websocket
+    partIndex: number
+    numParts: number
+    response: any // this will only be set for partIndex == 0. The parts are in the binaryPayload
+    error?: string
+}
+
+export const isResponseToClientPart = (x: any): x is ResponseToClientPart => {
+    return validateObject(x, {
+        type: isEqualTo('responseToClientPart'),
+        partIndex: isNumber,
+        numParts: isNumber,
         response: () => (true),
         requestId: optional(isString),
         error: optional(isString)

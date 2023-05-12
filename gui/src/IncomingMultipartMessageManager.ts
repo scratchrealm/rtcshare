@@ -35,7 +35,7 @@ class IncomingMultipartMessageManager {
     }
 }
 
-const concatenateArrayBuffers = (buffers: ArrayBuffer[]) => {
+export const concatenateArrayBuffers = (buffers: ArrayBuffer[]) => {
     let totalLength = 0
     for (let i = 0; i < buffers.length; i++) {
         totalLength += buffers[i].byteLength

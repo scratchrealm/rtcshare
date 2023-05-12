@@ -1,14 +1,15 @@
 import SimplePeer from "simple-peer";
-import { isRtcsharePeerResponse, RtcsharePeerRequest } from "./RtcsharePeerRequest";
+import { isRtcsharePeerResponse, isRtcsharePeerResponsePart, RtcsharePeerRequest, RtcsharePeerResponse, RtcsharePeerResponsePart } from "./RtcsharePeerRequest";
 import { RtcshareRequest, RtcshareResponse, WebrtcSignalingRequest } from "./RtcshareRequest";
 import postApiRequest from "./postApiRequest";
 import parseMessageWithBinaryPayload from "./parseMessageWithBinaryPayload";
-import IncomingMultipartMessageManager from "./IncomingMultipartMessageManager";
+import IncomingMultipartMessageManager, { concatenateArrayBuffers } from "./IncomingMultipartMessageManager";
 
 class WebrtcConnectionToService {
     #peer: SimplePeer.Instance | undefined
     #requestCallbacks: {[requestId: string]: (response: RtcshareResponse, binaryPayload: ArrayBuffer | undefined) => void} = {}
     #status: 'pending' | 'connected' | 'error' = 'pending'
+    #peerResponsePartManager = new PeerResponsePartManager()
     constructor() {
         const clientId = randomAlphaString(10)
         const peer = new SimplePeer({initiator: true})
@@ -40,20 +41,37 @@ class WebrtcConnectionToService {
         })
         incomingMultipartMessageManager.onMessage(d => {
             const {message: dd, binaryPayload} = parseMessageWithBinaryPayload(d)
-            if (!isRtcsharePeerResponse(dd)) {
+            if (isRtcsharePeerResponse(dd)) {
+                const cb = this.#requestCallbacks[dd.requestId]
+                if (!cb) {
+                    console.warn('Got response, but no matching request ID callback')
+                    return
+                }
+                delete this.#requestCallbacks[dd.requestId]
+                if (!dd.response) {
+                    throw Error(`Problem in peer response: ${dd.error}`)
+                }
+                cb(dd.response, binaryPayload)
+            }
+            else if (isRtcsharePeerResponsePart(dd)) {
+                const {completeResponse, completeBinaryPayload} = this.#peerResponsePartManager.handlePart(dd, binaryPayload)
+                if (completeResponse) {
+                    const cb = this.#requestCallbacks[completeResponse.requestId]
+                    if (!cb) {
+                        console.warn('Got response, but no matching request ID callback')
+                        return
+                    }
+                    delete this.#requestCallbacks[completeResponse.requestId]
+                    if (!completeResponse.response) {
+                        throw Error(`Problem in peer response: ${completeResponse.error}`)
+                    }
+                    cb(completeResponse.response, completeBinaryPayload)
+                }
+            }
+            else {
                 console.warn(dd)
                 throw Error('Unexpected peer response')
             }
-            const cb = this.#requestCallbacks[dd.requestId]
-            if (!cb) {
-                console.warn('Got response, but no matching request ID callback')
-                return
-            }
-            delete this.#requestCallbacks[dd.requestId]
-            if (!dd.response) {
-                throw Error(`Problem in peer response: ${dd.error}`)
-            }
-            cb(dd.response, binaryPayload)
         })
         this.#peer = peer
         ;(async () => {
@@ -173,5 +191,90 @@ function reportWebrtcStats() {
 }
 
 (window as any).reportWebrtcStats = reportWebrtcStats
+
+class InProgressResponse {
+    #parts: {[partIndex: number]: RtcsharePeerResponsePart} = {}
+    #binaryPayloadParts: {[partIndex: number]: ArrayBuffer} = {}
+    #numParts = 0
+    #numPartsReceived = 0
+    timestampLastModified = Date.now()
+    handlePart(responsePart: RtcsharePeerResponsePart, binaryPayload: ArrayBuffer) {
+        this.timestampLastModified = Date.now()
+        this.#numParts = responsePart.numParts
+        this.#parts[responsePart.partIndex] = responsePart
+        this.#binaryPayloadParts[responsePart.partIndex] = binaryPayload
+        this.#numPartsReceived++
+        if (this.#numPartsReceived === this.#numParts) {
+            if (!this.#parts[0]) {
+                throw Error('unexpected. first part not received.')
+            }
+            const completeResponseMessage = this.#parts[0].response
+            const completeResponse: RtcsharePeerResponse = {
+                type: 'rtcsharePeerResponse',
+                requestId: responsePart.requestId,
+                response: completeResponseMessage,
+                error: undefined
+            }
+            const completeBinaryPayload = this._getCompleteBinaryPayload()
+            return {completeResponse, completeBinaryPayload}
+        }
+        else {
+            return {completeResponse: undefined, completeBinaryPayload: undefined}
+        }
+    }
+    _getCompleteBinaryPayload(): ArrayBuffer {
+        const arrayBufferPartsList: ArrayBuffer[] = []
+        for (let i = 0; i < this.#numParts; i++) {
+            if (!(i in this.#binaryPayloadParts)) {
+                throw Error('unexpected. missing binary payload part.')
+            }
+            const p = this.#binaryPayloadParts[i]
+            arrayBufferPartsList.push(p)
+        }
+        return concatenateArrayBuffers(arrayBufferPartsList)
+    }
+}
+
+class PeerResponsePartManager {
+    #inProgressResponses: {[requestId: string]: InProgressResponse} = {}
+    handlePart(responsePart: RtcsharePeerResponsePart, binaryPayload: Buffer | ArrayBuffer | undefined) {
+        if (!binaryPayload) {
+            throw Error('unexpected. binaryPayload is undefined for response part.')
+        }
+        const {requestId} = responsePart
+        if (!(requestId in this.#inProgressResponses)) {
+            this.#inProgressResponses[requestId] = new InProgressResponse()
+        }
+        if (responsePart.error) {
+            delete this.#inProgressResponses[requestId]
+            this._cleanupOldResponsesInProgress()
+            const completeResponse: RtcsharePeerResponse = {
+                type: 'rtcsharePeerResponse',
+                requestId: responsePart.requestId,
+                response: undefined,
+                error: responsePart.error
+            }
+            return {completeResponse, completeBinaryPayload: undefined}
+        }
+        const {completeResponse, completeBinaryPayload} = this.#inProgressResponses[requestId].handlePart(responsePart, binaryPayload)
+        if (completeResponse) {
+            delete this.#inProgressResponses[requestId]
+            this._cleanupOldResponsesInProgress()
+            return {completeResponse, completeBinaryPayload}
+        }
+        else {
+            return {completeResponse: undefined, completeBinaryPayload: undefined}
+        }
+    }
+    _cleanupOldResponsesInProgress() {
+        const now = Date.now()
+        for (const requestId in this.#inProgressResponses) {
+            const inProgressResponse = this.#inProgressResponses[requestId]
+            if (now - inProgressResponse.timestampLastModified > 1000 * 60) {
+                delete this.#inProgressResponses[requestId]
+            }
+        }
+    }
+}
 
 export default WebrtcConnectionToService
