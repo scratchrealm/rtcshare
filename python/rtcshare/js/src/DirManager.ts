@@ -93,8 +93,10 @@ function isShareable(f: string) {
         return false
     }
     if (fileName.startsWith('.')) {
-        // don't show hidden files
-        return false
+        if (!['.zattrs'].includes(fileName)) {
+            // don't show hidden files (with some exceptions)
+            return false
+        }
     }
     return true
     // const exts = [...textExtensions, ...binExtensions]

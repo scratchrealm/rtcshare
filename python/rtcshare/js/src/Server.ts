@@ -11,7 +11,7 @@ import SignalCommunicator, { sleepMsec } from './SignalCommunicator';
 import { handleApiRequest } from './handleApiRequest';
 import createMessageWithBinaryPayload from './createMessageWithBinaryPayload';
 import ServiceManager from './ServiceManager';
-const allowedOrigins = ['https://figurl.org', 'https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001']
+const allowedOrigins = ['https://figurl.org', 'https://scratchrealm.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://neurosift.vercel.app']
 
 class Server {
     #expressApp: Express
