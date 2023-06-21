@@ -86,6 +86,13 @@ class Daemon:
         os.environ["RTCSHARE_SOCKET_PORT"] = str(socket_server_port)  # Pass the port number to the js server
 
         dir0 = os.environ.get('RTCSHARE_DIR')
+
+        # run the command npm install in the js directory
+        subprocess.run(["npm", "install"], cwd=f'{this_directory}/js')
+
+        # run the build command
+        subprocess.run(["npm", "run", "build"], cwd=f'{this_directory}/js')
+
         cmd = ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", dir0, "--verbose"]
         if enable_remote_access:
             cmd.append("--enable-remote-access")

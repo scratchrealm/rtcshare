@@ -1,2 +1,3 @@
-recursive-include rtcshare/js/dist *
-recursive-include rtcshare/js/node_modules *
+include rtcshare/js/package.json
+include rtcshare/js/tsconfig.json
+include rtcshare/js/src/*.ts
