@@ -9,7 +9,7 @@ from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 # This will be used for both install and develop
 def npm_install_command(command_subclass):
