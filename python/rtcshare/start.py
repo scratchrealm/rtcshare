@@ -87,6 +87,23 @@ class Daemon:
 
         dir0 = os.environ.get('RTCSHARE_DIR')
 
+        try:
+            npm_version = subprocess.run(["npm", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+            print(f'npm version: {npm_version}')
+        except:
+            raise Exception('Unable to run npm.')
+        
+        try:
+            node_version = subprocess.run(["node", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+            print(f'node version: {node_version}')
+        except:
+            raise Exception('Unable to run node.')
+        
+        # parse node_version v18.0.0 to get the major version number
+        node_major_version = int(node_version.split('.')[0][1:])
+        if node_major_version < 16:
+            raise Exception('node version must be >= 16.0.0')
+
         # run the command npm install in the js directory
         subprocess.run(["npm", "install"], cwd=f'{this_directory}/js')
 
