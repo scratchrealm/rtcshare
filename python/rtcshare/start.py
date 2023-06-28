@@ -87,14 +87,23 @@ class Daemon:
 
         dir0 = os.environ.get('RTCSHARE_DIR')
 
+        # apparently shell=True is necessary for Windows, but shell=False is necessary for Linux
+        if os.name == 'nt':
+            shell = True
+        elif os.name == 'posix':
+            shell = False
+        else:
+            print(f'Warning: unrecognized os.name: {os.name}')
+            shell = False
+
         try:
-            npm_version = subprocess.run(["npm", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+            npm_version = subprocess.run(["npm", "--version"], stdout=subprocess.PIPE, universal_newlines=True, shell=shell).stdout.strip()
             print(f'npm version: {npm_version}')
         except:
             raise Exception('Unable to run npm.')
         
         try:
-            node_version = subprocess.run(["node", "--version"], stdout=subprocess.PIPE, universal_newlines=True).stdout.strip()
+            node_version = subprocess.run(["node", "--version"], stdout=subprocess.PIPE, universal_newlines=True, shell=shell).stdout.strip()
             print(f'node version: {node_version}')
         except:
             raise Exception('Unable to run node.')
@@ -105,10 +114,10 @@ class Daemon:
             raise Exception('node version must be >= 16.0.0')
 
         # run the command npm install in the js directory
-        subprocess.run(["npm", "install"], cwd=f'{this_directory}/js')
+        subprocess.run(["npm", "install"], cwd=f'{this_directory}/js', shell=shell)
 
         # run the build command
-        subprocess.run(["npm", "run", "build"], cwd=f'{this_directory}/js')
+        subprocess.run(["npm", "run", "build"], cwd=f'{this_directory}/js', shell=shell)
 
         cmd = ["node", f'{this_directory}/js/dist/index.js', "start", "--dir", dir0, "--verbose"]
         if enable_remote_access:
